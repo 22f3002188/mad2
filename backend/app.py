@@ -649,6 +649,41 @@ def add_quiz(chapter_id):
 
     return jsonify({'message': 'Quiz added successfully'}), 201
 
+@app.route('/api/chapters/<int:chapter_id>/quizzes/<int:quiz_id>', methods=['DELETE'])
+@admin_required
+def delete_quiz(chapter_id, quiz_id):
+    """Delete a quiz from a chapter (admin only)
+    ---
+    tags: 
+      - Admin
+    parameters:
+      - name: chapter_id
+        in: path
+        required: true
+        type: integer
+      - name: quiz_id
+        in: path
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Quiz deleted successfully
+      404:
+        description: Quiz not found
+    security:
+      - Bearer: []
+    """
+   
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM quiz WHERE id = ? AND chapter_id = ?", (quiz_id, chapter_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Quiz deleted successfully'}), 200
+
+
 
 
 

@@ -67,6 +67,11 @@ export async function addQuiz(chapterId, data) {
   return await api.post(`/api/chapters/${chapterId}/quizzes`, data, true);
 }
 
+export async function deleteQuiz(chapterId, quizId) {
+  return await api.delete(`/api/chapters/${chapterId}/quizzes/${quizId}`, true);
+}
+
+
 
 
 

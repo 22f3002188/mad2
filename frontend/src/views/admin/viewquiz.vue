@@ -28,7 +28,7 @@
                     <div class="d-flex justify-content-center gap-2">
                       <button class="btn btn-outline-info btn-sm">View Questions</button>
                       <button class="btn btn-outline-warning btn-sm">Edit</button>
-                      <button class="btn btn-outline-danger btn-sm">Delete</button>
+                      <button class="btn btn-outline-danger btn-sm" @click="handleDeleteQuiz(quiz.id)">🗑️ Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -48,6 +48,7 @@
 <script>
 import navbar from './navbar.vue';
 import { getQuizzesByChapter } from '@/services/authService';
+import { deleteQuiz } from '@/services/authService';
 
 export default {
   components: { navbar },
@@ -66,6 +67,18 @@ export default {
         this.chapterName = res.chapter_name;
       } catch (err) {
         console.error("Failed to fetch quizzes:", err.message);
+      }
+    },
+    async handleDeleteQuiz(quizId) {
+      const chapterId = this.$route.params.chapterId;
+      if (confirm("Are you sure you want to delete this quiz?")) {
+        try {
+          await deleteQuiz(chapterId, quizId);
+          await this.fetchQuizzes(); // Refresh list
+        } catch (err) {
+          console.error("Delete failed:", err.message);
+          alert("Failed to delete quiz");
+        }
       }
     },
     formatDate(dateStr) {
