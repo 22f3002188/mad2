@@ -63,5 +63,10 @@ export async function getQuizzesByChapter(chapterId) {
   return await api.get(`/api/chapters/${chapterId}/quizzes`, true); // true => use JWT
 }
 
+export async function addQuiz(chapterId, data) {
+  return await api.post(`/api/chapters/${chapterId}/quizzes`, data, true);
+}
+
+
 
 

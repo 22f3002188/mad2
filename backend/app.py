@@ -589,6 +589,67 @@ def get_quizzes_by_chapter(chapter_id):
         ]
     }), 200
 
+@app.route('/api/chapters/<int:chapter_id>/quizzes', methods=['POST'])
+@admin_required
+def add_quiz(chapter_id):
+    """
+    Add a new quiz to a chapter (admin only)
+    ---
+    tags:
+      - Admin
+    parameters:   
+      - name: chapter_id  
+        in: path
+        required: true
+        type: integer
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            quiz_name:
+              type: string
+            date_of_quiz:
+              type: string
+              format: date
+            time_duration:
+              type: string
+    responses:
+      201:
+        description: Quiz added successfully
+      400:
+        description: All fields are required
+      409:
+        description: Quiz with same name exists
+    security:
+      - Bearer: []
+    """
+    data = request.get_json()
+    quiz_name = data.get('quiz_name')
+    date_of_quiz = data.get('date_of_quiz')
+    time_duration = data.get('time_duration')
+
+    if not all([quiz_name, date_of_quiz, time_duration]):
+        return jsonify({'error': 'All fields are required'}), 400
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO quiz (chapter_id, quiz_name, date_of_quiz, time_duration)
+            VALUES (?, ?, ?, ?)
+        ''', (chapter_id, quiz_name, date_of_quiz, time_duration))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        return jsonify({'error': 'Quiz with same name exists'}), 409
+    finally:
+        conn.close()
+
+    return jsonify({'message': 'Quiz added successfully'}), 201
+
+
 
 
 

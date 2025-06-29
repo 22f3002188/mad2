@@ -36,8 +36,8 @@
             </table>
           </div>
 
-          <div class="text-center my-3">
-            <button class="btn btn-success btn-lg shadow">Add Quiz</button>
+          <div class="text-center my-3"><router-link :to="`/admin/chapters/${$route.params.chapterId}/addquiz`" class="btn btn-success btn-lg shadow"> Add Quiz</router-link>
+
           </div>
         </div>
       </div>
