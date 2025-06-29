@@ -86,7 +86,7 @@ export default {
 
 <style scoped>
 .edit-quiz-page {
-  background-color: #f9f9f9;
+  background-color: #ffe6f0;
   min-height: 100vh;
 }
 .card-header {
