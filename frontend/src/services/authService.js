@@ -59,5 +59,9 @@ export async function deleteChapter(chapterId) {
   return await api.delete(`/api/chapters/${chapterId}`, true); // Authenticated DELETE
 }
 
+export async function getQuizzesByChapter(chapterId) {
+  return await api.get(`/api/chapters/${chapterId}/quizzes`, true); // true => use JWT
+}
+
 
 

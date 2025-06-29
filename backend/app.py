@@ -533,6 +533,63 @@ def delete_chapter(chapter_id):
     conn.close()
     return jsonify({"message": "Chapter deleted"}), 200
 
+@app.route('/api/chapters/<int:chapter_id>/quizzes', methods=['GET'])
+@admin_required
+def get_quizzes_by_chapter(chapter_id):
+    """
+    Get all quizzes for a specific chapter (Admin only)
+    ---
+    tags:
+      - Admin
+    parameters:   
+      - name: chapter_id
+        in: path
+        required: true
+        type: integer
+    responses:  
+      200:
+        description: List of quizzes for the chapter
+      404:
+        description: Chapter not found
+    security:
+      - Bearer: []
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Validate if chapter exists
+    cursor.execute('SELECT name FROM chapters WHERE id = ?', (chapter_id,))
+    chapter = cursor.fetchone()
+
+    if not chapter:
+        conn.close()
+        return jsonify({'error': 'Chapter not found'}), 404
+
+    chapter_name = chapter[0]
+
+    # Fetch all quizzes for the chapter
+    cursor.execute('''
+        SELECT id, quiz_name, date_of_quiz, time_duration 
+        FROM quiz 
+        WHERE chapter_id = ?
+    ''', (chapter_id,))
+    quizzes = cursor.fetchall()
+    conn.close()
+
+    # Format and return response
+    return jsonify({
+        'chapter_name': chapter_name,
+        'quizzes': [
+            {
+                'id': q[0],
+                'quiz_name': q[1],
+                'date_of_quiz': q[2],
+                'time_duration': q[3]
+            } for q in quizzes
+        ]
+    }), 200
+
+
 
 
 
