@@ -67,7 +67,7 @@ export default {
   methods: {
     async fetchQuizzes() {
       try {
-        const response = await api.get('/api/user/quizzes', true); // ⬅️ uses token
+        const response = await api.get('/api/user/quizzes', true); 
         this.quizzes = response.quizzes;
       } catch (error) {
         console.error('Failed to load quizzes:', error.message);
@@ -86,7 +86,7 @@ export default {
       return this.formatDate(dateStr) > today;
     },
     startQuiz(quizId) {
-      this.$router.push({ name: 'AttemptQuiz', params: { quizId } }); // 👈 assumes named route exists
+      this.$router.push({ name: 'AttemptQuiz', params: { quizId } }); 
     },
   },
 };
