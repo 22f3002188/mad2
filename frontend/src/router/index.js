@@ -1,35 +1,88 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+const routes = [
+  {
+    path: '/',
+    name: 'home',
+    component: () => import('../views/home.vue'),
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('../views/login.vue'),
+  },
+  {
+    path: '/signup',
+    name: 'signup',
+    component: () => import('../views/signup.vue'),
+  },
+  {
+    path: '/admin/admindashboard',
+    name: 'admindashboard',
+    component: () => import('../views/admin/admindashboard.vue'),
+    meta: { requiresAuth: true, role: 'admin' }
+  },
+  {
+    path: '/users/userdashboard',
+    name: 'userdashboard',
+    component: () => import('../views/users/userdashboard.vue'),
+    meta: { requiresAuth: true, role: 'user' }
+  },
+  {
+    path: '/admin/navbar',
+    name: 'navbar',
+    component: () => import('../views/admin/navbar.vue'),
+    meta: { requiresAuth: true, role: 'admin' }
+  },
+  {
+    path: '/users/navbar',
+    name: 'navbar',
+    component: () => import('../views/users/navbar.vue'),
+    meta: { requiresAuth: true, role: 'user' }
+  }
+  // {
+  //   path: '/admin/subjects/new',
+  //   name: 'AddSubject',
+  //   component: () => import('../views/admin/AddSubject.vue'),
+  //   meta: { requiresAuth: true, role: 'admin' }
+  // },
+  // {
+  //   path: '/admin/subjects/:id/edit',
+  //   name: 'EditSubject',
+  //   component: () => import('../views/admin/EditSubject.vue'),
+  //   meta: { requiresAuth: true, role: 'admin' }
+  // },
+  // {
+  //   path: '/admin/subjects/:id/chapters',
+  //   name: 'ViewChapters',
+  //   component: () => import('../views/admin/ViewChapters.vue'),
+  //   meta: { requiresAuth: true, role: 'admin' }
+  // },
+  // {
+  //   path: '/unauthorized',
+  //   name: 'unauthorized',
+  //   component: () => import('../views/Unauthorized.vue')
+  // }
+]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: () => import('../views/home.vue'),
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('../views/login.vue'),
-    },
-    {
-      path: '/signup',
-      name: 'signup',
-      component: () => import('../views/signup.vue'),
-    },
-    {
-      path: '/admin',
-      name: 'admin',
-      component: () => import('../views/admin.vue'),
-    },
-    {
-      path: '/searchresult',
-      name: 'searchresult',
-      component: () => import('../views/searchresult.vue'),
+  routes
+})
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+  const user = JSON.parse(localStorage.getItem('user'))
+
+  if (to.meta.requiresAuth) {
+    if (!token) return next('/login')
+
+    if (to.meta.role && user?.role !== to.meta.role) {
+      return next('/unauthorized')
     }
-  ],
+  }
+
+  next()
 })
 
 export default router

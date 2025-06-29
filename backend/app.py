@@ -1,10 +1,12 @@
 import hashlib
 import sqlite3
+from flask import abort
+from functools import wraps
+from flask_cors import CORS
 from flasgger import Swagger
 from datetime import timedelta
 from flask import Flask, request, jsonify
-from flask_cors import CORS
-from models import init_db, create_admin, get_connection, user_to_dict
+from models import init_db, create_admin, get_connection, user_to_dict, subject_to_dict
 from flask_jwt_extended import (JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt)
 
 
@@ -25,7 +27,7 @@ app.config['SWAGGER'] = {
     },
     'security': [{'Bearer': []}]
 }
-#cors 
+# CORS
 CORS(app)
 
 # Swagger and JWT setup
@@ -37,9 +39,16 @@ jwt = JWTManager(app)
 init_db()
 create_admin()
 
-@app.route('/')
-def index():
-    return jsonify({"message": "Backend running!"})
+# Define a decorator to check if the user is an admin
+def admin_required(fn):
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        claims = get_jwt()
+        if claims.get('role') != 'admin':
+            return jsonify({"error": "Admin access required"}), 403
+        return fn(*args, **kwargs)
+    return wrapper
 
 @app.route('/api/signup', methods=['POST'])
 def signup():
@@ -159,26 +168,72 @@ def login():
         conn.close()
         return jsonify({"error": "Invalid email or password"}), 401
 
-@app.route('/api/print-hello', methods=['GET'])
-@jwt_required()
-def print_hello():
+@app.route('/api/admin/subjects', methods=['GET'])
+@admin_required
+def api_get_subjects():
     """
-    Returns a hello message for quiz master (JWT protected)
+    Get all subjects (Admin Only)
     ---
     tags:
-      - Utility
+      - Admin
+    responses:
+      200:
+        description: List of subjects
+    """
+    subjects = subject_to_dict.query.all()
+    formatted = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "description": s.description
+        }
+        for s in subjects
+    ]
+    return jsonify({"subjects": formatted}), 200        
+
+
+@app.route('/api/admin/users', methods=['GET'])
+@admin_required
+def get_all_users():
+    """
+    Get list of all registered users (Admin only)
+    ---
+    tags:
+      - Admin
     security:
       - Bearer: []
     responses:
       200:
-        description: Returns hello message
-      401:
-        description: Unauthorized
+        description: List of users
+      403:
+        description: Admin access required
     """
-    current_user_email = get_jwt_identity()
-    claims = get_jwt()
-    role = claims.get("role", "unknown")
-    return jsonify({"message": "Hello quiz master!", "email": current_user_email, "role": role}), 200
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users')
+    users = cursor.fetchall()
+    conn.close()
+
+    user_list = [user_to_dict(user) for user in users]
+
+    return jsonify({"users": user_list}), 200
+
+
+@app.route('/api/user/quizzes', methods=['GET'])
+@jwt_required()
+def get_user_quizzes():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM quizzes")
+    quizzes = cursor.fetchall()
+    conn.close()
+    quiz_list = [dict(zip([col[0] for col in cursor.description], row)) for row in quizzes]
+    return jsonify({"quizzes": quiz_list})
+
+
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

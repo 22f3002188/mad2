@@ -48,16 +48,22 @@ export default {
     };
   },
   methods: {
-    async handleLogin() {
-      this.flashMessages = [];
-      try {
-        const user = await loginUser(this.email, this.password);
-        this.$router.push('/dashboard');
-      } catch (error) {
-        this.flashMessages = [error.message];
+  async handleLogin() {
+    this.flashMessages = [];
+    try {
+      const user = await loginUser(this.email, this.password); // `user` includes role
+      if (user.role === 'admin') {
+        this.$router.push('/admin/admindashboard');
+      } else if (user.role === 'user') {
+        this.$router.push('/users/userdashboard');
+      } else {
+        this.flashMessages = ['Unknown role: access denied'];
       }
-    },
-  },
+    } catch (error) {
+      this.flashMessages = [error.message || 'Login failed'];
+    }
+  }
+}
 };
 </script>
 

@@ -129,6 +129,13 @@ def user_to_dict(user_row, include_scores=False):
 
     return user
 
+def subject_to_dict(subject_row):
+    return {
+        "id": subject_row["id"],
+        "name": subject_row["name"],
+        "description": subject_row["description"]
+    }
+
 
 
 
