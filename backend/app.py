@@ -745,6 +745,101 @@ def delete_quiz(chapter_id, quiz_id):
 
     return jsonify({'message': 'Quiz deleted successfully'}), 200
 
+@app.route('/api/quizzes/<int:quiz_id>/questions', methods=['GET'])
+@admin_required
+def get_questions_by_quiz(quiz_id):
+    """
+    Get all questions for a specific quiz (Admin only)
+    ---
+    tags:
+      - Admin
+    parameters:
+      - name: quiz_id
+        in: path
+        required: true
+        type: integer
+    responses:
+      200:
+        description: List of questions
+      404:
+        description: Quiz not found
+    security:
+      - Bearer: []
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Check if quiz exists
+    cursor.execute("SELECT id FROM quiz WHERE id = ?", (quiz_id,))
+    quiz = cursor.fetchone()
+    if not quiz:
+        conn.close()
+        return jsonify({'error': 'Quiz not found'}), 404
+
+    # Fetch questions
+    cursor.execute('''
+        SELECT id, question_statement, option1, option2, option3, option4, correct_answer
+        FROM question WHERE quiz_id = ?
+    ''', (quiz_id,))
+    questions = cursor.fetchall()
+    conn.close()
+
+    return jsonify({
+        'questions': [
+            {
+                'id': q[0],
+                'question_statement': q[1],
+                'option1': q[2],
+                'option2': q[3],
+                'option3': q[4],
+                'option4': q[5],
+                'correct_answer': q[6]
+            } for q in questions
+        ]
+    }), 200
+
+@app.route('/api/quizzes/<int:quiz_id>/questions/<int:question_id>', methods=['DELETE'])
+@admin_required
+def delete_question(quiz_id, question_id):
+    """
+    Delete a specific question by ID (Admin only)
+    ---
+    tags:
+      - Admin
+    parameters:
+      - name: quiz_id
+        in: path
+        required: true
+        type: integer
+      - name: question_id
+        in: path
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Question deleted
+      404:
+        description: Not found
+    security:
+      - Bearer: []
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM question WHERE id = ? AND quiz_id = ?", (question_id, quiz_id))
+    question = cursor.fetchone()
+
+    if not question:
+        conn.close()
+        return jsonify({'error': 'Question not found'}), 404
+
+    cursor.execute("DELETE FROM question WHERE id = ?", (question_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Question deleted successfully'}), 200
+
+
+
 
 
 

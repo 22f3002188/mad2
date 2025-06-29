@@ -76,6 +76,13 @@ export async function deleteQuiz(chapterId, quizId) {
   return await api.delete(`/api/chapters/${chapterId}/quizzes/${quizId}`, true);
 }
 
+export async function getQuestionsByQuiz(quizId) {
+  return await api.get(`/api/quizzes/${quizId}/questions`, true); // true = with auth
+}
+
+export async function deleteQuestion(quizId, questionId) {
+  return await api.delete(`/api/quizzes/${quizId}/questions/${questionId}`, true);
+}
 
 
 
