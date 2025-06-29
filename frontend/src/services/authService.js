@@ -45,3 +45,9 @@ export async function getAllUsers() {
 export async function deleteUserById(id) {
   return await api.delete(`/api/users/${id}`, true); // authenticated
 }
+
+export async function addChapter(subjectId, data) {
+  return await api.post(`/api/subjects/${subjectId}/chapters`, data, true); // 'true' means it includes JWT
+}
+
+

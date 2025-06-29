@@ -24,9 +24,10 @@
                   <td>{{ chapter.description }}</td>
                   <td>
                     <div class="d-flex justify-content-center gap-2 flex-wrap">
-                      <button class="btn btn-info btn-sm text-white">View Quiz</button>
-                      <button class="btn btn-warning btn-sm">Edit</button>
-                      <button class="btn btn-danger btn-sm" @click="deleteChapter(chapter.id)">Delete</button>
+                      <button class="btn btn-outline-info btn-sm">📁 View Quiz </button>
+                      <button class="btn btn-outline-warning btn-sm">✏️ Edit</button>
+                      <button class="btn btn-outline-danger btn-sm" @click="deleteChapter(chapter.id)">🗑️ Delete</button>
+
                     </div>
                   </td>
                 </tr>
@@ -67,11 +68,12 @@ export default {
         console.error('Failed to load chapters:', err.message);
     }
     },
-
     addChapter() {
-      const subjectId = this.$route.params.subjectId;
-      this.$router.push(`/admin/subjects/${subjectId}/addchapter`);
+    const subjectId = this.$route.params.subjectId;
+    this.$router.push(`/admin/subjects/${subjectId}/addchapter`);
     },
+
+
     deleteChapter(chapterId) {
       console.log(`Delete chapter ${chapterId}`);
     },

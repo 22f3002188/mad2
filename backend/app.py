@@ -404,6 +404,53 @@ def get_chapters_by_subject(subject_id):
         ]
     }), 200
 
+@app.route('/api/subjects/<int:subject_id>/chapters', methods=['POST'])
+@admin_required
+def add_chapter(subject_id):
+    """Add a new chapter to a subject (admin only)
+    ---
+    tags:
+      - Admin
+    parameters:   
+      - name: subject_id
+        in: path  
+        required: true
+        type: integer
+      - name: body
+        in: body
+        required: true
+        schema: 
+          type: object
+          properties:
+            name:
+              type: string  
+            description:
+              type: string
+    responses:
+      201:
+        description: Chapter added successfully
+      400:
+        description: Chapter name is required or subject not found
+    security:
+      - Bearer: []
+    """
+    data = request.json
+    name = data.get('name')
+    description = data.get('description')
+
+    if not name:
+        return jsonify({'error': 'Chapter name is required'}), 400
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO chapters (name, description, subject_id) VALUES (?, ?, ?)',
+                   (name, description, subject_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Chapter added successfully'}), 201
+
+
 
 
 

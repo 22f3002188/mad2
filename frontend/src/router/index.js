@@ -63,7 +63,15 @@ const routes = [
   name: 'userlist',
   component: () => import('@/views/admin/userlist.vue'),
   meta: { requiresAuth: true, role: 'admin' }
+},
+{
+  path: '/admin/subjects/:subjectId/addchapter',
+  name: 'addchapter',
+  component: () => import('@/views/admin/addchapter.vue'),
+  meta: { requiresAuth: true, role: 'admin' }
 }
+
+
 ]
 
 const router = createRouter({
