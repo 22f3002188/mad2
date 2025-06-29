@@ -25,7 +25,8 @@
                   <td>
                     <div class="d-flex justify-content-center gap-2 flex-wrap">
                       <button class="btn btn-outline-info btn-sm">📁 View Quiz </button>
-                      <button class="btn btn-outline-warning btn-sm">✏️ Edit</button>
+                      <button class="btn btn-outline-warning btn-sm" @click="$router.push(`/admin/subjects/${$route.params.subjectId}/editchapter/${chapter.id}`)">✏️ Edit</button>
+
                       <button class="btn btn-outline-danger btn-sm" @click="deleteChapter(chapter.id)">🗑️ Delete</button>
 
                     </div>

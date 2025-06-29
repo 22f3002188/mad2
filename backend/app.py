@@ -450,6 +450,55 @@ def add_chapter(subject_id):
 
     return jsonify({'message': 'Chapter added successfully'}), 201
 
+@app.route('/api/chapters/<int:chapter_id>', methods=['PUT'])
+@admin_required
+def edit_chapter(chapter_id):
+    """
+    Edit a chapter (Admin only)
+    ---
+    tags:
+      - Admin
+    parameters:
+      - name: chapter_id
+        in: path
+        required: true
+        type: integer
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            description:
+              type: string
+    responses:
+      200:
+        description: Chapter updated successfully
+      404:
+        description: Chapter not found
+    security:
+      - Bearer: []
+    """
+    data = request.json
+    name = data.get('name')
+    description = data.get('description')
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM chapters WHERE id = ?', (chapter_id,))
+    if not cursor.fetchone():
+        return jsonify({'error': 'Chapter not found'}), 404
+
+    cursor.execute('UPDATE chapters SET name = ?, description = ? WHERE id = ?', 
+                   (name, description, chapter_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Chapter updated successfully'}), 200
+
+
 @app.route('/api/chapters/<int:chapter_id>', methods=['DELETE'])
 @admin_required
 def delete_chapter(chapter_id):

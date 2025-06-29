@@ -50,6 +50,11 @@ export async function addChapter(subjectId, data) {
   return await api.post(`/api/subjects/${subjectId}/chapters`, data, true); // 'true' means it includes JWT
 }
 
+export async function updateChapter(chapterId, data) {
+  return await api.put(`/api/chapters/${chapterId}`, data, true);
+}
+
+
 export async function deleteChapter(chapterId) {
   return await api.delete(`/api/chapters/${chapterId}`, true); // Authenticated DELETE
 }
