@@ -649,6 +649,68 @@ def add_quiz(chapter_id):
 
     return jsonify({'message': 'Quiz added successfully'}), 201
 
+@app.route('/api/chapters/<int:chapter_id>/quizzes/<int:quiz_id>', methods=['PUT'])
+@admin_required
+def update_quiz(chapter_id, quiz_id):
+    """
+    Update quiz details (Admin only)
+    ---
+    tags:
+      - Admin
+    parameters:
+      - name: chapter_id
+        in: path
+        required: true
+        type: integer
+      - name: quiz_id
+        in: path
+        required: true
+        type: integer
+      - name: body
+        in: body
+        required: true
+        schema:
+          properties:
+            quiz_name:
+              type: string
+            date_of_quiz:
+              type: string
+              format: date
+            time_duration:
+              type: string
+    responses:
+      200:
+        description: Quiz updated successfully
+      400:
+        description: Invalid input
+      404:
+        description: Quiz not found
+    security:
+      - Bearer: []
+    """
+    data = request.get_json()
+    quiz_name = data.get('quiz_name')
+    date_of_quiz = data.get('date_of_quiz')
+    time_duration = data.get('time_duration')
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT id FROM quiz WHERE id = ? AND chapter_id = ?', (quiz_id, chapter_id))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({'error': 'Quiz not found'}), 404
+
+    cursor.execute('''
+        UPDATE quiz 
+        SET quiz_name = ?, date_of_quiz = ?, time_duration = ?
+        WHERE id = ? AND chapter_id = ?
+    ''', (quiz_name, date_of_quiz, time_duration, quiz_id, chapter_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Quiz updated successfully'}), 200
+
+
 @app.route('/api/chapters/<int:chapter_id>/quizzes/<int:quiz_id>', methods=['DELETE'])
 @admin_required
 def delete_quiz(chapter_id, quiz_id):

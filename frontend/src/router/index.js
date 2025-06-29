@@ -87,7 +87,15 @@ const routes = [
   name: 'addquiz',
   component: () => import('@/views/admin/addquiz.vue'),
   meta: { requiresAuth: true, role: 'admin' }
+},
+{
+  path: '/admin/chapters/:chapterId/quizzes/:quizId/edit',
+  name: 'editquiz',
+  component: () => import('@/views/admin/editquiz.vue'),
+  meta: { requiresAuth: true, role: 'admin' }
+  
 }
+
 
 
 ]
