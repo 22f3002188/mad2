@@ -37,6 +37,8 @@
 </template>
 
 <script>
+import { loginUser } from '@/services/authService';
+
 export default {
   data() {
     return {
@@ -47,35 +49,18 @@ export default {
   },
   methods: {
     async handleLogin() {
+      this.flashMessages = [];
       try {
-        const response = await fetch('http://127.0.0.1:5000/api/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: this.email,
-            password: this.password,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // Optional: Save user info to localStorage or Vuex
-          localStorage.setItem('user', JSON.stringify(data.user));
-          // Navigate to dashboard or home
-          this.$router.push('/dashboard');
-        } else {
-          const errorData = await response.json();
-          this.flashMessages = [errorData.error || 'Invalid credentials. Please try again.'];
-        }
+        const user = await loginUser(this.email, this.password);
+        this.$router.push('/dashboard');
       } catch (error) {
-        this.flashMessages = ['An unexpected error occurred. Please try again.'];
+        this.flashMessages = [error.message];
       }
     },
   },
 };
 </script>
+
 
 <style scoped>
 body {

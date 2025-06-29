@@ -49,6 +49,8 @@
 </template>
 
 <script>
+import { registerUser } from '@/services/authService';
+
 export default {
   data() {
     return {
@@ -62,36 +64,25 @@ export default {
   },
   methods: {
     async handleSignup() {
+      this.flashMessages = [];
       try {
-        const response = await fetch('http://127.0.0.1:5000/api/signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: this.email,
-            password: this.password,
-            full_name: this.fullName,
-            qualification: this.qualification,
-            dob: this.dob,
-          }),
+        await registerUser({
+          email: this.email,
+          password: this.password,
+          full_name: this.fullName,
+          qualification: this.qualification,
+          dob: this.dob,
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          alert("Signup successful! Please log in.");
-          this.$router.push('/login'); // Navigate to login page
-        } else {
-          const errorData = await response.json();
-          this.flashMessages = [errorData.error || "Signup failed. Please try again."];
-        }
+        alert('Signup successful! Please log in.');
+        this.$router.push('/login');
       } catch (error) {
-        this.flashMessages = ['Network error. Please try again later.'];
+        this.flashMessages = [error.message || 'Signup failed. Please try again.'];
       }
     },
   },
 };
 </script>
+
 
 <style scoped>
 body {

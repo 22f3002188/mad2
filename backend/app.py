@@ -3,6 +3,7 @@ import sqlite3
 from flasgger import Swagger
 from datetime import timedelta
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from models import init_db, create_admin, get_connection, user_to_dict
 from flask_jwt_extended import (JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt)
 
@@ -24,6 +25,8 @@ app.config['SWAGGER'] = {
     },
     'security': [{'Bearer': []}]
 }
+#cors 
+CORS(app)
 
 # Swagger and JWT setup
 swagger = Swagger(app)
