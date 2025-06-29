@@ -64,31 +64,6 @@ const routes = [
   component: () => import('@/views/admin/userlist.vue'),
   meta: { requiresAuth: true, role: 'admin' }
 }
-
-
-  // {
-  //   path: '/admin/subjects/new',
-  //   name: 'AddSubject',
-  //   component: () => import('../views/admin/AddSubject.vue'),
-  //   meta: { requiresAuth: true, role: 'admin' }
-  // },
-  // {
-  //   path: '/admin/subjects/:id/edit',
-  //   name: 'EditSubject',
-  //   component: () => import('../views/admin/EditSubject.vue'),
-  //   meta: { requiresAuth: true, role: 'admin' }
-  // },
-  // {
-  //   path: '/admin/subjects/:id/chapters',
-  //   name: 'ViewChapters',
-  //   component: () => import('../views/admin/ViewChapters.vue'),
-  //   meta: { requiresAuth: true, role: 'admin' }
-  // },
-  // {
-  //   path: '/unauthorized',
-  //   name: 'unauthorized',
-  //   component: () => import('../views/Unauthorized.vue')
-  // }
 ]
 
 const router = createRouter({

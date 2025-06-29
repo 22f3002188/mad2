@@ -65,15 +65,50 @@ export default {
 </script>
 
 <style scoped>
-.edit-subject-page {
-  background-color: #f9fafb;
+.add-subject-page {
+  background-color: #ffe6f0; /* Light pink background */
+  padding: 40px 0;
+  min-height: 100vh;
 }
+
 .card {
+  background-color: #fff0f5; /* Light pink card */
   max-width: 600px;
   margin: auto;
   border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
+
 .card-header {
   border-radius: 16px 16px 0 0;
+  background-color: #147efb;
+  color: white;
+  text-align: center;
+}
+
+.card-body {
+  background-color: #fff0f5;
+}
+
+.btn-success {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+.btn-success:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+.btn-secondary:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
 }
 </style>
+

@@ -35,7 +35,7 @@
           </div>
           <div class="text-center mt-4">
             <button class="btn btn-success btn-lg px-4 shadow" @click="addChapter">
-              ➕ Add Chapter
+              Add Chapter
             </button>
           </div>
         </div>
@@ -83,13 +83,65 @@ export default {
 </script>
 
 <style scoped>
-.chapters-page {
-  background-color: #f0f2f5;
+.dashboard-page {
+  background-color: #ffe6f0; /* light pink page background */
   min-height: 100vh;
   padding-top: 30px;
 }
+
+.card {
+  background-color: #fff0f5; /* light pink card */
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  border-radius: 16px 16px 0 0;
+  background-color: #147efb !important;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.card-body {
+  background-color: #fff0f5;
+}
+
 .table th,
 .table td {
   vertical-align: middle;
+}
+
+/* Button styles with light backgrounds */
+.btn-outline-info {
+  background-color: #e0f7fa;
+  border-color: #0dcaf0;
+  color: #0dcaf0;
+}
+.btn-outline-info:hover {
+  background-color: #0dcaf0;
+  color: #fff;
+}
+
+.btn-outline-warning {
+  background-color: #fff3cd;
+  border-color: #ffc107;
+  color: #ffc107;
+}
+.btn-outline-warning:hover {
+  background-color: #ffc107;
+  color: #fff;
+}
+
+.btn-outline-danger {
+  background-color: #f8d7da;
+  border-color: #dc3545;
+  color: #dc3545;
+}
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: #fff;
 }
 </style>
