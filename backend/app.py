@@ -231,6 +231,33 @@ def get_user_quizzes():
     return jsonify({"quizzes": quiz_list})
 
 
+@app.route('/api/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    """
+    User logout
+    ---
+    tags:
+      - User
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Logout successful
+    """
+    jti = get_jwt()['jti']
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS revoked_tokens (
+            jti TEXT PRIMARY KEY
+        )
+    ''')
+    cursor.execute('INSERT INTO revoked_tokens (jti) VALUES (?)', (jti,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Logout successful"}), 200
+
 
 
 

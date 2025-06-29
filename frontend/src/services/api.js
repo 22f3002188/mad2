@@ -10,12 +10,13 @@ function getAuthHeaders() {
   return token
     ? {
         'Content-Type': 'application/json',
-        'Authorization': token,
+        'Authorization': `Bearer ${token}`, 
       }
     : {
         'Content-Type': 'application/json',
       };
 }
+
 
 async function post(endpoint, body, auth = false) {
   const headers = auth ? getAuthHeaders() : { 'Content-Type': 'application/json' };

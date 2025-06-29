@@ -11,3 +11,9 @@ export async function loginUser(email, password) {
 export async function registerUser(payload) {
   return await api.post('/api/signup', payload);
 }
+
+export async function logoutUser() {
+  await api.post('/api/logout', {}, true); // requires JWT token
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+}
