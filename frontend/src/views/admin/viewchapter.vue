@@ -48,6 +48,7 @@
 <script>
 import navbar from './navbar.vue';
 import { getChaptersBySubject } from '@/services/authService';
+import {deleteChapter} from '@/services/authService';
 
 export default {
   components: { navbar },
@@ -74,9 +75,18 @@ export default {
     },
 
 
-    deleteChapter(chapterId) {
-      console.log(`Delete chapter ${chapterId}`);
-    },
+    async deleteChapter(chapterId) {
+    if (confirm("Are you sure you want to delete this chapter?")) {
+        try {
+        await deleteChapter(chapterId);
+        // Refresh list after deletion
+        await this.fetchChapters();
+        } catch (err) {
+        console.error("Delete failed:", err.message);
+        alert("Failed to delete chapter.");
+        }
+    }
+    }
   },
   mounted() {
     this.fetchChapters();

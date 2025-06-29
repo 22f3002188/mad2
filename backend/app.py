@@ -450,6 +450,41 @@ def add_chapter(subject_id):
 
     return jsonify({'message': 'Chapter added successfully'}), 201
 
+@app.route('/api/chapters/<int:chapter_id>', methods=['DELETE'])
+@admin_required
+def delete_chapter(chapter_id):
+    """
+    Delete a chapter (admin only)
+    ---
+    tags:
+      - Admin
+    parameters:
+      - name: chapter_id
+        in: path
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Chapter deleted
+      404:
+        description: Chapter not found
+    security:
+      - Bearer: []
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM chapters WHERE id = ?", (chapter_id,))
+    chapter = cursor.fetchone()
+    if not chapter:
+        conn.close()
+        return jsonify({"error": "Chapter not found"}), 404
+
+    cursor.execute("DELETE FROM chapters WHERE id = ?", (chapter_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Chapter deleted"}), 200
+
+
 
 
 

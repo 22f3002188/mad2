@@ -77,22 +77,26 @@ export default {
     editSubject(id) {
       this.$router.push(`/admin/editsubject/${id}`);
     },
-    async deleteSubject(id) {
-      try {
-        await deleteSubject(id);
-        this.fetchSubjects();
-      } catch (err) {
-        console.error('Delete failed:', err.message || err);
+     async deleteSubject(subjectId) {
+      if (confirm("Are you sure you want to delete this subject?")) {
+        try {
+          await deleteSubject(subjectId);
+          await this.fetchSubjects(); // Refresh the subject list
+        } catch (err) {
+          console.error("Delete failed:", err.message || err);
+          alert("Failed to delete subject.");
+        }
       }
     },
     viewChapters(subjectId) {
       this.$router.push(`/admin/viewchapter/${subjectId}`);
-    },
+    }
   },
   mounted() {
     this.fetchSubjects();
-  },
-};
+  }
+}
+
 </script>
 
 
@@ -159,5 +163,3 @@ export default {
   color: #fff;
 }
 </style>
-
-
