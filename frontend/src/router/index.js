@@ -57,6 +57,12 @@ const routes = [
   name: 'viewchapter',
   component: () => import('@/views/admin/viewchapter.vue'),
   meta: { requiresAuth: true, role: 'admin' }
+},
+{
+  path: '/admin/userlist',
+  name: 'userlist',
+  component: () => import('@/views/admin/userlist.vue'),
+  meta: { requiresAuth: true, role: 'admin' }
 }
 
 

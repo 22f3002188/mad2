@@ -38,3 +38,10 @@ export async function getChaptersBySubject(subjectId) {
   return await api.get(`/api/subjects/${subjectId}/chapters`, true);
 }
 
+export async function getAllUsers() {
+  return await api.get('/api/admin/users', true); // authenticated
+}
+
+export async function deleteUserById(id) {
+  return await api.delete(`/api/users/${id}`, true); // authenticated
+}

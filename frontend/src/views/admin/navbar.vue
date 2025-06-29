@@ -20,9 +20,10 @@
             </router-link>
           </li>
           <li class="nav-item">
-            <router-link class="nav-link nav-tab" to="/users">
+            <router-link class="nav-link nav-tab" to="/admin/userlist">
               <i class="bi bi-people-fill me-1"></i> Users
             </router-link>
+
           </li>
           <li class="nav-item">
             <router-link class="nav-link nav-tab" to="/summary">
