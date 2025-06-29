@@ -17,3 +17,15 @@ export async function logoutUser() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
 }
+
+export async function addSubject(subject) {
+  return await api.post('/api/subjects', subject, true); // true = authenticated
+}
+
+export async function getSubjects() {
+  return await api.get('/api/get_subjects', true); // ✅ Authenticated GET
+}
+
+export async function deleteSubject(id) {
+  return await api.delete(`/api/subjects/${id}`, true);
+}

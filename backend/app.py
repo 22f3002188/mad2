@@ -9,7 +9,6 @@ from flask import Flask, request, jsonify
 from models import init_db, create_admin, get_connection, user_to_dict, subject_to_dict
 from flask_jwt_extended import (JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt)
 
-
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -39,24 +38,33 @@ jwt = JWTManager(app)
 init_db()
 create_admin()
 
+#---------------------------------------ADMIN REQUIRED DECORATOR-------------------------------------------------------------------
 # Define a decorator to check if the user is an admin
 def admin_required(fn):
     @wraps(fn)
     @jwt_required()
     def wrapper(*args, **kwargs):
-        claims = get_jwt()
-        if claims.get('role') != 'admin':
+        identity = get_jwt_identity()  # email
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE email = ?', (identity,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if not user or user["role"] != "admin":
             return jsonify({"error": "Admin access required"}), 403
+
         return fn(*args, **kwargs)
     return wrapper
 
+#--------------------------------------------------SIGNUP AND LOGIN ENDPOINTS---------------------------------------------------
 @app.route('/api/signup', methods=['POST'])
 def signup():
     """
     Register a new user
     ---
     tags:
-      - User
+      - Registration
     parameters:
       - name: body
         in: body
@@ -113,7 +121,7 @@ def login():
     User login
     ---
     tags:
-      - User
+      - Registration
     parameters:
       - name: body
         in: body
@@ -166,32 +174,195 @@ def login():
         return jsonify({"message": "Login successful", "user": user_dict, "access_token": access_token}), 200
     else:
         conn.close()
-        return jsonify({"error": "Invalid email or password"}), 401
+        return jsonify({"error": "Invalid email or password"}), 401   
+    
 
-@app.route('/api/admin/subjects', methods=['GET'])
-@admin_required
-def api_get_subjects():
+
+
+@app.route('/api/logout', methods=['POST'])
+@jwt_required()
+def logout():
     """
-    Get all subjects (Admin Only)
+    User logout
+    ---
+    tags:
+      - Registration
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Logout successful
+    """
+    jti = get_jwt()['jti']
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS revoked_tokens (
+            jti TEXT PRIMARY KEY
+        )
+    ''')
+    cursor.execute('INSERT INTO revoked_tokens (jti) VALUES (?)', (jti,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Logout successful"}), 200    
+
+
+#--------------------------------------------------SUBJECTS ENDPOINTS---------------------------------------------------
+@app.route('/api/subjects', methods=['POST'])
+@admin_required
+def add_subject():
+    """
+    Add a new subject (admin only)
     ---
     tags:
       - Admin
+    parameters:
+      - name: body    
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            description:
+              type: string
+    responses:
+      200:  
+        description: Subject added successfully
+      400:
+        description: Name and description are required or subject name already exists
+    security:
+      - Bearer: []
+    """
+    data = request.get_json()
+    name = data.get('name')
+    description = data.get('description')
+
+    if not name or not description:
+        return jsonify({'error': 'Name and description are required'}), 400
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'INSERT INTO subjects (name, description) VALUES (?, ?)',
+            (name, description)
+        )
+        conn.commit()
+        return jsonify({'message': 'Subject added successfully'}), 200
+
+    except sqlite3.IntegrityError:
+        return jsonify({'error': 'Subject name already exists'}), 400
+
+    finally:
+        conn.close()
+
+@app.route('/api/get_subjects', methods=['GET'])
+@admin_required
+def get_subjects():
+    """
+    Get list of all subjects (Admin only)
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
     responses:
       200:
         description: List of subjects
+      403:
+        description: Admin access required
     """
-    subjects = subject_to_dict.query.all()
-    formatted = [
-        {
-            "id": s.id,
-            "name": s.name,
-            "description": s.description
-        }
-        for s in subjects
-    ]
-    return jsonify({"subjects": formatted}), 200        
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM subjects')
+    subjects = cursor.fetchall()
+    conn.close()
+
+    subject_list = [subject_to_dict(subject) for subject in subjects]
+
+    return jsonify({"subjects": subject_list}), 200
+
+@app.route('/api/subjects/<int:subject_id>', methods=['PUT'])
+@admin_required
+def update_subject(subject_id):
+    """Update an existing subject (admin only)
+    ---
+    tags:
+      - Admin
+    parameters:
+      - name: subject_id
+        in: path
+        required: true
+        type: integer
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            description:
+              type: string
+    responses:
+      200:
+        description: Subject updated successfully
+      400:
+        description: Name and description are required
+      404:
+        description: Subject not found
+    security:
+      - Bearer: []
+    """
+    data = request.get_json()
+    name = data.get('name')
+    description = data.get('description')
+
+    if not name or not description:
+        return jsonify({'error': 'Name and description are required'}), 400
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE subjects SET name = ?, description = ? WHERE id = ?', (name, description, subject_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Subject updated successfully"}), 200
 
 
+@app.route('/api/subjects/<int:subject_id>', methods=['DELETE'])
+@admin_required
+def delete_subject(subject_id):
+    """Delete a subject (admin only)
+    ---
+    tags:
+      - Admin
+    parameters:
+      - name: subject_id
+        in: path
+        required: true
+        type: integer
+    responses:   
+      200:
+        description: Subject deleted successfully
+      404:    
+        description: Subject not found
+    security:
+      - Bearer: []
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM subjects WHERE id = ?', (subject_id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Subject deleted successfully"}), 200   
+
+
+#--------------------------------------------------GET ALL USERS ENDPOINT---------------------------------------------------
 @app.route('/api/admin/users', methods=['GET'])
 @admin_required
 def get_all_users():
@@ -219,44 +390,7 @@ def get_all_users():
     return jsonify({"users": user_list}), 200
 
 
-@app.route('/api/user/quizzes', methods=['GET'])
-@jwt_required()
-def get_user_quizzes():
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM quizzes")
-    quizzes = cursor.fetchall()
-    conn.close()
-    quiz_list = [dict(zip([col[0] for col in cursor.description], row)) for row in quizzes]
-    return jsonify({"quizzes": quiz_list})
 
-
-@app.route('/api/logout', methods=['POST'])
-@jwt_required()
-def logout():
-    """
-    User logout
-    ---
-    tags:
-      - User
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: Logout successful
-    """
-    jti = get_jwt()['jti']
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS revoked_tokens (
-            jti TEXT PRIMARY KEY
-        )
-    ''')
-    cursor.execute('INSERT INTO revoked_tokens (jti) VALUES (?)', (jti,))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Logout successful"}), 200
 
 
 

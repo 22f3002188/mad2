@@ -1,4 +1,3 @@
-// src/services/api.js
 const API_BASE_URL = 'http://127.0.0.1:5000';
 
 function getToken() {
@@ -16,7 +15,6 @@ function getAuthHeaders() {
         'Content-Type': 'application/json',
       };
 }
-
 
 async function post(endpoint, body, auth = false) {
   const headers = auth ? getAuthHeaders() : { 'Content-Type': 'application/json' };
@@ -37,8 +35,27 @@ async function get(endpoint, auth = false) {
   return handleResponse(response);
 }
 
+async function put(endpoint, body, auth = false) {
+  const headers = auth ? getAuthHeaders() : { 'Content-Type': 'application/json' };
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(body),
+  });
+  return handleResponse(response);
+}
+
+async function del(endpoint, auth = false) {
+  const headers = auth ? getAuthHeaders() : { 'Content-Type': 'application/json' };
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'DELETE',
+    headers,
+  });
+  return handleResponse(response);
+}
+
 async function handleResponse(response) {
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(data.error || 'API request failed');
   }
@@ -48,5 +65,7 @@ async function handleResponse(response) {
 export default {
   get,
   post,
+  put,
+  delete: del,  // 👈 This enables api.delete(...)
   getToken,
 };

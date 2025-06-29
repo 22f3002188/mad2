@@ -39,7 +39,14 @@ const routes = [
     name: 'navbar',
     component: () => import('../views/users/navbar.vue'),
     meta: { requiresAuth: true, role: 'user' }
+  },
+  {
+  path: '/admin/addsubject',
+  name: 'addsubject',
+  component: () => import('@/views/admin/addsubject.vue'),
+  meta: { requiresAuth: true, role: 'admin' }
   }
+
   // {
   //   path: '/admin/subjects/new',
   //   name: 'AddSubject',
