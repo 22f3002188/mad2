@@ -6,7 +6,7 @@ from flask_cors import CORS
 from flasgger import Swagger
 from datetime import timedelta
 from flask import Flask, request, jsonify
-from models import init_db, create_admin, get_connection, user_to_dict, subject_to_dict
+from models import init_db, create_admin, get_connection, user_to_dict, subject_to_dict, chapter_to_dict, quiz_to_dict, score_to_dict
 from flask_jwt_extended import (JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt)
 
 # Initialize Flask app
@@ -359,7 +359,54 @@ def delete_subject(subject_id):
     conn.commit()
     conn.close()
 
-    return jsonify({"message": "Subject deleted successfully"}), 200   
+    return jsonify({"message": "Subject deleted successfully"}), 200 
+
+
+@app.route('/api/subjects/<int:subject_id>/chapters', methods=['GET'])
+@admin_required
+def get_chapters_by_subject(subject_id):
+    """Get all chapters for a specific subject (Admin only)
+    ---
+    tags:
+      - Admin
+    parameters:   
+      - name: subject_id
+        in: path
+        required: true
+        type: integer
+    responses:  
+      200:
+        description: List of chapters for the subject
+      404:
+        description: Subject not found
+    security:
+      - Bearer: []
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT name FROM subjects WHERE id = ?', (subject_id,))
+    subject = cursor.fetchone()
+
+    if not subject:
+        return jsonify({'error': 'Subject not found'}), 404
+
+    subject_name = subject[0]
+
+    cursor.execute('SELECT id, name, description FROM chapters WHERE subject_id = ?', (subject_id,))
+    chapters = cursor.fetchall()
+    conn.close()
+
+    return jsonify({
+        'subject_name': subject_name,
+        'chapters': [
+            {'id': c[0], 'name': c[1], 'description': c[2]} for c in chapters
+        ]
+    }), 200
+
+
+
+
 
 
 #--------------------------------------------------GET ALL USERS ENDPOINT---------------------------------------------------

@@ -45,7 +45,20 @@ const routes = [
   name: 'addsubject',
   component: () => import('@/views/admin/addsubject.vue'),
   meta: { requiresAuth: true, role: 'admin' }
-  }
+  },
+  {
+    path: '/admin/editsubject/:id',
+    name: 'editsubject',
+    component: () => import('@/views/admin/editsubject.vue'),
+    meta: { requiresAuth: true, role: 'admin' }
+  },
+  {
+  path: '/admin/viewchapter/:subjectId',
+  name: 'viewchapter',
+  component: () => import('@/views/admin/viewchapter.vue'),
+  meta: { requiresAuth: true, role: 'admin' }
+}
+
 
   // {
   //   path: '/admin/subjects/new',

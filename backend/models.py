@@ -136,6 +136,46 @@ def subject_to_dict(subject_row):
         "description": subject_row["description"]
     }
 
+def chapter_to_dict(chapter_row):
+    return {
+        "id": chapter_row["id"],
+        "name": chapter_row["name"],
+        "description": chapter_row["description"],
+        "subject_id": chapter_row["subject_id"]
+    }
+
+def quiz_to_dict(quiz_row):
+    return {
+        "id": quiz_row["id"],
+        "chapter_id": quiz_row["chapter_id"],
+        "quiz_name": quiz_row["quiz_name"],
+        "date_of_quiz": quiz_row["date_of_quiz"],
+        "time_duration": quiz_row["time_duration"]
+    }   
+
+def question_to_dict(question_row):
+    return {
+        "id": question_row["id"],
+        "quiz_id": question_row["quiz_id"],
+        "question_statement": question_row["question_statement"],
+        "option1": question_row["option1"],
+        "option2": question_row["option2"],
+        "option3": question_row["option3"],
+        "option4": question_row["option4"],
+        "correct_answer": question_row["correct_answer"]
+    }
+
+def score_to_dict(score_row):
+    return {
+        "id": score_row["id"],
+        "user_id": score_row["user_id"],
+        "quiz_id": score_row["quiz_id"],
+        "date_attempt": score_row["date_attempt"],
+        "score": score_row["score"]
+    }
+
+
+
 
 
 

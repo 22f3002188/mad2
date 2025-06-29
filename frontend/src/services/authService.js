@@ -29,3 +29,12 @@ export async function getSubjects() {
 export async function deleteSubject(id) {
   return await api.delete(`/api/subjects/${id}`, true);
 }
+
+export async function updateSubject(id, payload) {
+  return await api.put(`/api/subjects/${id}`, payload, true);
+}
+
+export async function getChaptersBySubject(subjectId) {
+  return await api.get(`/api/subjects/${subjectId}/chapters`, true);
+}
+
