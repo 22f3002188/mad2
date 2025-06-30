@@ -1,22 +1,34 @@
 <template>
   <div class="container mt-5">
     <h2 class="text-center">Quiz Attempt - {{ quiz.quiz_name || 'Loading...' }}</h2>
+
     <h5 class="text-center text-muted" v-if="quiz.chapter">
       Subject: {{ quiz.chapter.subject_name }} | Chapter: {{ quiz.chapter.name }}
     </h5>
+
     <h6 class="text-center text-primary" v-if="quiz.date_of_quiz">
       Date of Quiz: {{ formatDate(quiz.date_of_quiz) }}
     </h6>
 
-    <div v-if="timeLeft !== null" class="text-center my-3">
+    <!-- Timer -->
+    <div v-if="timeLeft !== null && !submitted" class="text-center my-3">
       <h4>Time Left: {{ formattedTimeLeft }}</h4>
     </div>
 
-    <form @submit.prevent="submitQuiz" v-if="questions.length > 0">
-      <div v-for="(question, index) in questions" :key="question.id" class="card mt-3">
+    <!-- Quiz Form -->
+    <form v-if="questions.length > 0 && !submitted" @submit.prevent="submitQuiz">
+      <div
+        v-for="(question, index) in questions"
+        :key="question.id"
+        class="card mt-3"
+      >
         <div class="card-body">
           <h5 class="card-title">Q{{ index + 1 }}: {{ question.question_statement }}</h5>
-          <div class="form-check" v-for="opt in questionOptions(question)" :key="opt">
+          <div
+            class="form-check"
+            v-for="opt in questionOptions(question)"
+            :key="opt"
+          >
             <input
               class="form-check-input"
               type="radio"
@@ -35,36 +47,55 @@
       </div>
     </form>
 
-    <div v-else class="text-center mt-4">
+    <!-- Loading -->
+    <div v-else-if="!submitted" class="text-center mt-4">
       Loading questions...
+    </div>
+
+    <!-- Quiz Result -->
+    <div v-if="submitted" class="text-center mt-4">
+      <h3>
+        Your Score: {{ computedCorrectAnswers }} / {{ totalQuestions }} ({{ score }}%)
+      </h3>
+      <p>{{ resultMessage }}</p>
+      <button class="btn btn-primary" @click="goToDashboard">Back to Dashboard</button>
     </div>
   </div>
 </template>
 
 <script>
-import api from '@/services/api'; // Your axios or fetch wrapper
+import { useRouter, useRoute } from 'vue-router';
+import { onMounted, onBeforeUnmount, reactive, ref, computed } from 'vue';
+import api from '@/services/api'; // Adjust as per your actual API file
 
 export default {
   name: 'AttemptQuiz',
-  data() {
-    return {
-      quiz: {},
-      questions: [],
-      answers: {},   // To store user answers keyed by question.id
-      timeLeft: null, // in seconds
-      timerInterval: null,
-    };
-  },
-  computed: {
-    formattedTimeLeft() {
-      if (this.timeLeft === null) return '';
-      const minutes = Math.floor(this.timeLeft / 60);
-      const seconds = this.timeLeft % 60;
+  setup() {
+    const router = useRouter();
+    const route = useRoute();
+
+    const quiz = reactive({});
+    const questions = ref([]);
+    const answers = reactive({});
+    const timeLeft = ref(null);
+    const timerInterval = ref(null);
+    const submitted = ref(false);
+    const score = ref(0); // percentage score
+    const totalQuestions = ref(0);
+    const resultMessage = ref('');
+
+    const formattedTimeLeft = computed(() => {
+      if (timeLeft.value === null) return '';
+      const minutes = Math.floor(timeLeft.value / 60);
+      const seconds = timeLeft.value % 60;
       return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-  },
-  methods: {
-    formatDate(dateStr) {
+    });
+
+    const computedCorrectAnswers = computed(() => {
+      return Math.round((score.value / 100) * totalQuestions.value);
+    });
+
+    const formatDate = (dateStr) => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) {
@@ -72,93 +103,102 @@ export default {
         return '';
       }
       return date.toISOString().split('T')[0];
-    },
+    };
 
-    questionOptions(question) {
-      // Return options filtering out null or empty strings
+    const questionOptions = (question) => {
       return [question.option1, question.option2, question.option3, question.option4].filter(
-        opt => opt && opt.trim() !== ''
+        (opt) => opt && opt.trim() !== ''
       );
-    },
+    };
 
-    async fetchQuizData() {
+    const parseDurationToSeconds = (durationStr) => {
+      if (!durationStr) return 900;
+      if (!durationStr.includes(':')) {
+        const minutes = Number(durationStr);
+        return isNaN(minutes) ? 900 : minutes * 60;
+      }
+      const parts = durationStr.split(':').map(Number);
+      if (parts.length === 2) return parts[0] * 60 + parts[1];
+      if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      return 900;
+    };
+
+    const startTimer = (seconds) => {
+      timeLeft.value = seconds;
+      timerInterval.value = setInterval(() => {
+        if (timeLeft.value > 0) {
+          timeLeft.value--;
+        } else {
+          clearInterval(timerInterval.value);
+          alert('Time is up! Submitting quiz...');
+          submitQuiz();
+        }
+      }, 1000);
+    };
+
+    const fetchQuizData = async () => {
       try {
-        const quizId = this.$route.params.quizId;
+        const quizId = route.params.quizId;
         const response = await api.get(`/api/user/quiz/${quizId}`, true);
-        this.quiz = response.quiz;
-        this.questions = response.questions;
-
-        // Start timer in seconds, convert from e.g. '15:00' (mm:ss) or '00:15:00' (hh:mm:ss)
-        this.startTimer(this.parseDurationToSeconds(this.quiz.time_duration));
+        Object.assign(quiz, response.quiz);
+        questions.value = response.questions;
+        totalQuestions.value = questions.value.length;
+        startTimer(parseDurationToSeconds(quiz.time_duration));
       } catch (error) {
         console.error('Failed to load quiz data:', error.message);
       }
-    },
+    };
 
-    parseDurationToSeconds(durationStr) {
-    if (!durationStr) return 900; // default 15 min
+    const submitQuiz = async () => {
+      clearInterval(timerInterval.value);
+      try {
+        const quizId = route.params.quizId;
+        const payload = { answers };
+        const response = await api.post(`/api/user/quiz/${quizId}/submit`, payload, true);
+        score.value = response.score;
+        totalQuestions.value = response.total || totalQuestions.value;
+        resultMessage.value = response.message || 'Quiz submitted successfully!';
+        submitted.value = true;
+      } catch (error) {
+        console.error('Failed to submit quiz:', error.message);
+        alert('Failed to submit quiz. Please try again.');
+      }
+    };
 
-    // If duration is a simple number (no colon), treat as minutes
-    if (!durationStr.includes(':')) {
-        const minutes = Number(durationStr);
-        if (!isNaN(minutes)) {
-        return minutes * 60;
-        }
-        return 900; // fallback
-    }
+    const goToDashboard = () => {
+      router.push({ name: 'userdashboard' }); // matched with your router
+    };
 
-    // If duration includes colon, parse hh:mm:ss or mm:ss
-    const parts = durationStr.split(':').map(Number);
-    if (parts.length === 2) {
-        // mm:ss
-        return parts[0] * 60 + parts[1];
-    } else if (parts.length === 3) {
-        // hh:mm:ss
-        return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    }
+    onMounted(() => {
+      fetchQuizData();
+    });
 
-    return 900; // fallback 15 minutes
-    },
+    onBeforeUnmount(() => {
+      clearInterval(timerInterval.value);
+    });
 
-
-    startTimer(seconds) {
-      this.timeLeft = seconds;
-
-      this.timerInterval = setInterval(() => {
-        if (this.timeLeft > 0) {
-          this.timeLeft--;
-        } else {
-          clearInterval(this.timerInterval);
-          alert('Time is up! Submitting quiz...');
-          this.submitQuiz();
-        }
-      }, 1000);
-    },
-
-    submitQuiz() {
-      clearInterval(this.timerInterval);
-
-      // Here you can process answers and submit to backend
-      // For demo just log answers and redirect or show message
-
-      console.log('User answers:', this.answers);
-      alert('Quiz submitted! (You can now implement actual submission.)');
-
-      // Optionally redirect user back or show results
-      this.$router.push({ name: 'UserDashboard' });
-    }
+    return {
+      quiz,
+      questions,
+      answers,
+      timeLeft,
+      submitted,
+      score,
+      totalQuestions,
+      resultMessage,
+      formattedTimeLeft,
+      computedCorrectAnswers,
+      formatDate,
+      questionOptions,
+      goToDashboard,
+      submitQuiz,
+    };
   },
-  mounted() {
-    this.fetchQuizData();
-  },
-  beforeUnmount() {
-    clearInterval(this.timerInterval);
-  }
 };
 </script>
 
 <style scoped>
-.card {
-  font-size: 0.95rem;
+.card-title {
+  font-weight: bold;
 }
 </style>
