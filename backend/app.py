@@ -1480,6 +1480,66 @@ def api_quizzes_charts():
     return jsonify(subject_chart_data=subject_chart_data, month_chart_data=month_chart_data)
 
 
+@app.route('/api/search', methods=['GET'])
+@admin_required
+def api_search():
+    """
+    Search users, subjects, chapters, quizzes by query (admin only)
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    parameters:
+      - name: q
+        in: query
+        required: true
+        description: Search query string
+        schema:
+          type: string
+    responses:
+      200:
+        description: Search results
+      400:
+        description: Missing query
+      403:
+        description: Admin access required
+    """
+    query = request.args.get('query', '').strip()
+    if not query:
+        return jsonify({"error": "Query parameter 'q' is required"}), 400
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    like_query = f"%{query}%"
+
+    # Users by email
+    cursor.execute("SELECT * FROM users WHERE email LIKE ?", (like_query,))
+    users = cursor.fetchall()
+
+    # Subjects by name
+    cursor.execute("SELECT * FROM subjects WHERE name LIKE ?", (like_query,))
+    subjects = cursor.fetchall()
+
+    # Chapters by name
+    cursor.execute("SELECT * FROM chapters WHERE name LIKE ?", (like_query,))
+    chapters = cursor.fetchall()
+
+    # Quizzes by quiz_name
+    cursor.execute("SELECT * FROM quiz WHERE quiz_name LIKE ?", (like_query,))
+    quizzes = cursor.fetchall()
+
+    conn.close()
+
+    results = {
+        "users": [user_to_dict(u) for u in users],
+        "subjects": [subject_to_dict(s) for s in subjects],
+        "chapters": [chapter_to_dict(c) for c in chapters],
+        "quizzes": [quiz_to_dict(q) for q in quizzes],
+    }
+
+    return jsonify(results), 200
 
 
 

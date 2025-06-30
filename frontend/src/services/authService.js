@@ -105,5 +105,9 @@ export async function getUserSummary() {
   return await api.get('/api/quizzes_charts', true); // true = include auth token header
 }
 
+export async function searchAPI(query) {
+  return await api.get(`/api/search?query=${encodeURIComponent(query)}`, true); // true = include auth token header
+}
+
 
 

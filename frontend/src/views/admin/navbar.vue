@@ -60,6 +60,7 @@
 
 <script>
 import { logoutUser } from '@/services/authService';
+import { searchAPI } from '@/services/authService'; // Ensure searchAPI is imported correctly
 
 export default {
   data() {
@@ -78,8 +79,44 @@ export default {
       }
       this.$router.push('/login');
     },
-    search() {
-      this.$router.push({ path: '/adminsearch', query: { q: this.query } });
+    async search() {
+      const q = this.query.trim();
+      if (!q) return;
+
+      try {
+        const results = await searchAPI(q);
+
+        if (results.users && results.users.length > 0) {
+          // Users: redirect to userlist with user emails or names (if supported)
+          // Since userlist probably filters by ids, but if not possible use email:
+          const emails = results.users.map(u => u.email).join(',');
+          this.$router.push({ path: '/admin/userlist', query: { emails } });
+        } else if (results.subjects && results.subjects.length > 0) {
+          // Redirect to dashboard with subject names
+          const subjectNames = results.subjects.map(s => s.name).join(',');
+          this.$router.push({ path: '/admin/admindashboard', query: { names: subjectNames } });
+        } else if (results.chapters && results.chapters.length > 0) {
+      // Redirect to /admin/viewchapter/:subjectId using subjectId from first chapter
+      const subjectId = results.chapters[0].subject_id;
+      if (!subjectId) {
+        alert('Chapter data missing subjectId');
+        return;
+      }
+      this.$router.push({ path: `/admin/viewchapter/${subjectId}` });
+    } else if (results.quizzes && results.quizzes.length > 0) {
+      // Redirect to /admin/chapters/:chapterId/viewquiz using chapterId from first quiz
+      const chapterId = results.quizzes[0].chapter_id;
+      if (!chapterId) {
+        alert('Quiz data missing chapterId');
+        return;
+      }
+      this.$router.push({ path: `/admin/chapters/${chapterId}/viewquiz` });
+    }  else {
+          alert('No results found');
+        }
+      } catch (error) {
+        alert('Search failed: ' + (error.message || 'Unknown error'));
+      }
     }
   }
 };
