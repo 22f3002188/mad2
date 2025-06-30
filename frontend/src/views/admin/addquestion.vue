@@ -3,7 +3,7 @@
     <div class="container mt-5">
       <div class="card shadow border-0 mx-auto" style="max-width: 700px">
         <div class="card-header bg-success text-white text-center fs-4 fw-bold">
-          ➕ Add Question
+          Add Question
         </div>
         <div class="card-body">
           <form @submit.prevent="addQuestion">
@@ -41,8 +41,9 @@
               </select>
             </div>
 
-            <div class="text-center">
+            <div class="text-center d-flex justify-content-center gap-3">
               <button type="submit" class="btn btn-success">Add Question</button>
+              <button type="button" class="btn btn-secondary" @click="cancel">Cancel</button>
             </div>
           </form>
         </div>
@@ -82,6 +83,9 @@ export default {
         console.error('Failed to add question:', error.message);
         alert('Failed to add question');
       }
+    },
+    cancel() {
+      this.$router.push(`/admin/quizzes/${this.quizId}/questions`);
     }
   }
 };
@@ -89,7 +93,9 @@ export default {
 
 <style scoped>
 .add-question-page {
-  background-color: #f8f9fa;
+  background-color: #ffe6f0; /* light pink */
   min-height: 100vh;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
 }
 </style>
