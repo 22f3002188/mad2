@@ -100,6 +100,12 @@ const routes = [
   name: 'viewquestion',
   component: () => import('@/views/admin/viewquestion.vue'),
   meta: { requiresAuth: true, role: 'admin' }
+},
+{
+  path: '/admin/quizzes/:quizId/questions/add',
+  name: 'qddquestion',
+  component: () => import('@/views/admin/addquestion.vue'),
+  meta: { requiresAuth: true, role: 'admin' } 
 }
 
 

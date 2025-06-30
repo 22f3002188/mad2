@@ -798,6 +798,93 @@ def get_questions_by_quiz(quiz_id):
         ]
     }), 200
 
+@app.route('/api/quizzes/<int:quiz_id>/questions', methods=['POST'])
+@admin_required
+def add_question(quiz_id):
+    """
+    Add a question to a quiz (Admin only)
+    ---
+    tags:
+      - Admin
+    parameters:
+      - name: quiz_id
+        in: path
+        required: true
+        type: integer
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - question_statement
+            - option1
+            - option2
+            - option3
+            - option4
+            - correct_answer
+          properties:
+            question_statement:
+              type: string
+              example: "What is 2 + 2?"
+            option1:
+              type: string
+              example: "3"
+            option2:
+              type: string
+              example: "4"
+            option3:
+              type: string
+              example: "5"
+            option4:
+              type: string
+              example: "6"
+            correct_answer:
+              type: string
+              example: "4"
+    responses:
+      201:
+        description: Question added
+      400:
+        description: Invalid input or missing data
+    security:
+      - Bearer: []
+    """
+    data = request.get_json()
+
+    required_fields = ['question_statement', 'option1', 'option2', 'option3', 'option4', 'correct_answer']
+    if not data or not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Optional: verify quiz exists
+    cursor.execute("SELECT id FROM quiz WHERE id = ?", (quiz_id,))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({'error': 'Quiz not found'}), 404
+
+    cursor.execute("""
+        INSERT INTO question (quiz_id, question_statement, option1, option2, option3, option4, correct_answer)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (
+        quiz_id,
+        data['question_statement'],
+        data['option1'],
+        data['option2'],
+        data['option3'],
+        data['option4'],
+        data['correct_answer']
+    ))
+
+    conn.commit()
+    question_id = cursor.lastrowid
+    conn.close()
+
+    return jsonify({'message': 'Question added successfully', 'question_id': question_id}), 201
+
+
 @app.route('/api/quizzes/<int:quiz_id>/questions/<int:question_id>', methods=['DELETE'])
 @admin_required
 def delete_question(quiz_id, question_id):

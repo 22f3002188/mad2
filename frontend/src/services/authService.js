@@ -84,6 +84,10 @@ export async function deleteQuestion(quizId, questionId) {
   return await api.delete(`/api/quizzes/${quizId}/questions/${questionId}`, true);
 }
 
+export async function addQuestionToQuiz(quizId, data) {
+  return await api.post(`/api/quizzes/${quizId}/questions`, data, true);
+}
+
 
 
 

@@ -47,7 +47,7 @@
 
           <div class="text-center my-3">
             <router-link :to="`/admin/quizzes/${quizId}/questions/add`" class="btn btn-success btn-lg shadow">
-              ➕ Add Question
+              Add Question
             </router-link>
           </div>
         </div>
