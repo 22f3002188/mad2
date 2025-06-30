@@ -96,22 +96,22 @@ export default {
           const subjectNames = results.subjects.map(s => s.name).join(',');
           this.$router.push({ path: '/admin/admindashboard', query: { names: subjectNames } });
         } else if (results.chapters && results.chapters.length > 0) {
-      // Redirect to /admin/viewchapter/:subjectId using subjectId from first chapter
-      const subjectId = results.chapters[0].subject_id;
-      if (!subjectId) {
-        alert('Chapter data missing subjectId');
-        return;
-      }
-      this.$router.push({ path: `/admin/viewchapter/${subjectId}` });
-    } else if (results.quizzes && results.quizzes.length > 0) {
-      // Redirect to /admin/chapters/:chapterId/viewquiz using chapterId from first quiz
-      const chapterId = results.quizzes[0].chapter_id;
-      if (!chapterId) {
-        alert('Quiz data missing chapterId');
-        return;
-      }
-      this.$router.push({ path: `/admin/chapters/${chapterId}/viewquiz` });
-    }  else {
+          // Redirect to /admin/viewchapter/:subjectId using subjectId from first chapter
+          const subjectId = results.chapters[0].subject_id;
+          if (!subjectId) {
+            alert('Chapter data missing subjectId');
+            return;
+          }
+          this.$router.push({ path: `/admin/viewchapter/${subjectId}` });
+        } else if (results.quizzes && results.quizzes.length > 0) {
+          // Redirect to /admin/chapters/:chapterId/viewquiz using chapterId from first quiz
+          const chapterId = results.quizzes[0].chapter_id;
+          if (!chapterId) {
+            alert('Quiz data missing chapterId');
+            return;
+          }
+          this.$router.push({ path: `/admin/chapters/${chapterId}/viewquiz` });
+        } else {
           alert('No results found');
         }
       } catch (error) {
