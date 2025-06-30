@@ -884,6 +884,79 @@ def add_question(quiz_id):
 
     return jsonify({'message': 'Question added successfully', 'question_id': question_id}), 201
 
+@app.route('/api/quizzes/<int:quiz_id>/questions/<int:question_id>', methods=['PUT'])
+@admin_required
+def update_question(quiz_id, question_id):
+    """
+    Update a specific question in a quiz
+    ---
+    tags:
+      - Admin
+    parameters:
+      - name: quiz_id
+        in: path
+        required: true
+        type: integer
+      - name: question_id
+        in: path
+        required: true
+        type: integer
+      - name: body
+        in: body
+        required: true
+        schema:
+          properties:
+            question_statement:
+              type: string
+            option1:
+              type: string
+            option2:
+              type: string
+            option3:
+              type: string
+            option4:
+              type: string
+            correct_answer:
+              type: string
+    responses:
+      200:
+        description: Question updated
+      404:
+        description: Question not found
+    security:
+      - Bearer: []
+    """
+    data = request.get_json()
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM question WHERE id = ? AND quiz_id = ?", (question_id, quiz_id))
+    question = cursor.fetchone()
+
+    if not question:
+        conn.close()
+        return jsonify({"error": "Question not found"}), 404
+
+    cursor.execute("""
+        UPDATE question
+        SET question_statement = ?, option1 = ?, option2 = ?, option3 = ?, option4 = ?, correct_answer = ?
+        WHERE id = ? AND quiz_id = ?
+    """, (
+        data.get('question_statement'),
+        data.get('option1'),
+        data.get('option2'),
+        data.get('option3'),
+        data.get('option4'),
+        data.get('correct_answer'),
+        question_id,
+        quiz_id
+    ))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Question updated successfully"}), 200
+
+
 
 @app.route('/api/quizzes/<int:quiz_id>/questions/<int:question_id>', methods=['DELETE'])
 @admin_required

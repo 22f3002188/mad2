@@ -88,6 +88,11 @@ export async function addQuestionToQuiz(quizId, data) {
   return await api.post(`/api/quizzes/${quizId}/questions`, data, true);
 }
 
+export async function updateQuestion(quizId, questionId, data) {
+  return await api.put(`/api/quizzes/${quizId}/questions/${questionId}`, data, true);
+}
+
+
 
 
 
