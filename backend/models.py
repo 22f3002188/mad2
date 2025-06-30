@@ -80,11 +80,11 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS score (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
+            user_email TEXT NOT NULL,
             quiz_id INTEGER NOT NULL,
             date_attempt TEXT NOT NULL,
             score REAL NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE,
             FOREIGN KEY (quiz_id) REFERENCES quiz(id) ON DELETE CASCADE
         )
     ''')
@@ -110,24 +110,24 @@ def create_admin():
         print("Admin user already exists.")
 
     conn.close()
-
+    
 def user_to_dict(user_row, include_scores=False):
     user = dict(user_row)
     
-    # Normalize fields (like date format)
     if user.get("dob"):
-        user["dob"] = user["dob"]  # already ISO string in DB
+        user["dob"] = user["dob"]  # assuming ISO string
     
-    # Optionally add scores
     if include_scores:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM score WHERE user_id = ?', (user['id'],))
+        # FIXED: Use user email since score references user_email, not user_id
+        cursor.execute('SELECT * FROM score WHERE user_email = ?', (user['email'],))
         scores = cursor.fetchall()
         user['scores'] = [dict(score) for score in scores]
         conn.close()
 
     return user
+
 
 def subject_to_dict(subject_row):
     return {
@@ -168,7 +168,7 @@ def question_to_dict(question_row):
 def score_to_dict(score_row):
     return {
         "id": score_row["id"],
-        "user_id": score_row["user_id"],
+        "user_email": score_row["user_email"],
         "quiz_id": score_row["quiz_id"],
         "date_attempt": score_row["date_attempt"],
         "score": score_row["score"]

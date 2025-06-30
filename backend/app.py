@@ -170,13 +170,13 @@ def login():
         cursor.execute('INSERT INTO user_tokens (email, token) VALUES (?, ?)', (user_dict['email'], access_token))
         conn.commit()
         conn.close()
-
         # Return only required user data
         return jsonify({
             "message": "Login successful",
             "access_token": access_token,
             "user": {
                 "id": user_dict['id'],
+                "full_name": user_dict['full_name'],
                 "email": user_dict['email'],
                 "role": user_dict['role']
             }
@@ -1180,7 +1180,8 @@ def get_quiz_details(quiz_id):
 @jwt_required()
 def submit_quiz(quiz_id):
     try:
-        user_id = get_jwt_identity()  # Assuming this returns the user id
+        # Get user email from JWT token
+        user_email = get_jwt_identity()
 
         data = request.get_json()
         if not data or "answers" not in data:
@@ -1213,9 +1214,9 @@ def submit_quiz(quiz_id):
         # Save the score with current date
         date_attempt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cursor.execute('''
-            INSERT INTO score (user_id, quiz_id, date_attempt, score)
+            INSERT INTO score (user_email, quiz_id, date_attempt, score)
             VALUES (?, ?, ?, ?)
-        ''', (user_id, quiz_id, date_attempt, score))
+        ''', (user_email, quiz_id, date_attempt, score))
         conn.commit()
         conn.close()
 
@@ -1223,6 +1224,10 @@ def submit_quiz(quiz_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
+
 
 
 
