@@ -101,6 +101,9 @@ export async function getAdminSummary() {
   return await api.get('/api/admin/summary', true); // 'true' to include JWT token
 }
 
+export async function getUserSummary() {
+  return await api.get('/api/quizzes_charts', true); // true = include auth token header
+}
 
 
 

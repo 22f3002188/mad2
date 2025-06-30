@@ -29,7 +29,7 @@ app.config['SWAGGER'] = {
     'security': [{'Bearer': []}]
 }
 # CORS
-CORS(app)
+CORS(app, supports_credentials=True)
 
 # Swagger and JWT setup
 swagger = Swagger(app)
@@ -1422,6 +1422,62 @@ def get_user_summary():
     })        
 
 
+from flask import jsonify,session
+from collections import Counter
+from sqlalchemy import extract
+
+@app.route('/api/quizzes_charts', methods=['GET'])
+@jwt_required()
+def api_quizzes_charts():
+    user_email = get_jwt_identity()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Fetch all quizzes with their chapters and subjects
+    cursor.execute("""
+        SELECT q.id, q.quiz_name, q.date_of_quiz, c.name AS chapter, s.name AS subject
+        FROM quiz q
+        JOIN chapters c ON q.chapter_id = c.id
+        JOIN subjects s ON c.subject_id = s.id
+    """)
+    quizzes = cursor.fetchall()
+
+    # Count quizzes by subject
+    subject_counts = Counter(row["subject"] for row in quizzes)
+    subject_chart_data = {
+        "labels": list(subject_counts.keys()),
+        "quizzes": list(subject_counts.values()),
+    }
+
+    # Fetch quiz attempts (scores) by this user, extract month from date_attempt (assumed 'YYYY-MM-DD')
+    cursor.execute("""
+        SELECT date_attempt FROM score WHERE user_email = ?
+    """, (user_email,))
+    attempts = cursor.fetchall()
+
+    # Extract months from date_attempt string (format 'YYYY-MM-DD')
+    months = []
+    for row in attempts:
+        date_str = row["date_attempt"]
+        try:
+            month = int(date_str.split('-')[1])  # get month part as int
+            months.append(month)
+        except Exception:
+            continue
+
+    month_counts = Counter(months)
+    month_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    month_chart_data = {
+        "labels": [month_labels[m - 1] for m in month_counts.keys()],
+        "attempts": list(month_counts.values()),
+    }
+
+    conn.close()
+
+    return jsonify(subject_chart_data=subject_chart_data, month_chart_data=month_chart_data)
 
 
 
