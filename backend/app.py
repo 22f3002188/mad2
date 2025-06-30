@@ -1,5 +1,7 @@
 import hashlib
 import sqlite3
+import calendar
+from typing import Counter
 from flask import abort
 from functools import wraps
 from flask_cors import CORS
@@ -1097,6 +1099,78 @@ def delete_user(user_id):
 
     return jsonify({"message": "User deleted successfully"}), 200
 
+@app.route('/api/admin/summary', methods=['GET'])
+@jwt_required()
+def admin_summary_api():
+    """ Get summary statistics for admin dashboard  
+    ---
+    tags:
+      - Admin 
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Summary statistics
+      403:
+        description: Admin access required
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Query top scorers per subject: get max score per user per subject
+    cursor.execute('''
+        SELECT sub.name AS subject_name, u.full_name AS top_scorer, MAX(s.score) AS max_score
+        FROM score s
+        JOIN quiz q ON s.quiz_id = q.id
+        JOIN chapters c ON q.chapter_id = c.id
+        JOIN subjects sub ON c.subject_id = sub.id
+        JOIN users u ON s.user_email = u.email
+        GROUP BY sub.id, u.email
+    ''')
+    rows = cursor.fetchall()
+
+    # Process to find top scorer per subject (max score)
+    # We'll build a dict: { subject_name: (top_scorer, max_score) }
+    top_scorer_dict = {}
+    for row in rows:
+        subject = row['subject_name']
+        scorer = row['top_scorer']
+        score = row['max_score']
+
+        # Update if this is the first or higher score for the subject
+        if subject not in top_scorer_dict or score > top_scorer_dict[subject]['max_score']:
+            top_scorer_dict[subject] = {'top_scorer': scorer, 'max_score': score}
+
+    # Convert to lists for chart.js
+    chart_data = {
+        'labels': list(top_scorer_dict.keys()),
+        'scores': [v['max_score'] for v in top_scorer_dict.values()],
+        'scorers': [v['top_scorer'] for v in top_scorer_dict.values()]
+    }
+
+    # Query user attempts per subject
+    cursor.execute('''
+        SELECT sub.name AS subject_name, COUNT(s.id) AS attempt_count
+        FROM score s
+        JOIN quiz q ON s.quiz_id = q.id
+        JOIN chapters c ON q.chapter_id = c.id
+        JOIN subjects sub ON c.subject_id = sub.id
+        GROUP BY sub.id
+    ''')
+    attempts = cursor.fetchall()
+
+    attempt_chart_data = {
+        'labels': [row['subject_name'] for row in attempts],
+        'attempts': [row['attempt_count'] for row in attempts]
+    }
+
+    conn.close()
+
+    return jsonify({
+        'chart_data': chart_data,
+        'attempt_chart_data': attempt_chart_data
+    })
+
 
 @app.route('/api/user/quizzes', methods=['GET'])
 @jwt_required()
@@ -1316,6 +1390,36 @@ def get_user_scores():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/user/summary', methods=['GET'])
+@jwt_required()
+def get_user_summary():
+    user_email = get_jwt_identity()
+
+    # Dummy data — replace with actual DB queries filtering by user_email
+    subject_data = {
+        "labels": ["Math", "Science", "History", "English"],
+        "quizzes": [10, 15, 7, 12]
+    }
+
+    # Generate next 6 months starting this month
+    now = datetime.now()
+    months = []
+    for i in range(6):
+        month_dt = now.replace(day=1) + timedelta(days=calendar.monthrange(now.year, now.month)[1] * i)
+        months.append(month_dt.strftime('%b'))
+
+    # Dummy attempts for these months
+    attempts = [50, 60, 45, 70, 65, 80]
+
+    month_data = {
+        "labels": months,
+        "attempts": attempts
+    }
+
+    return jsonify({
+        "subject_chart_data": subject_data,
+        "month_chart_data": month_data
+    })        
 
 
 

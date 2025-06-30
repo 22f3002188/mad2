@@ -12,6 +12,7 @@ export async function registerUser(payload) {
   return await api.post('/api/signup', payload);
 }
 
+
 export async function logoutUser() {
   await api.post('/api/logout', {}, true); // requires JWT token
   localStorage.removeItem('token');
@@ -96,7 +97,9 @@ export async function getUserScores() {
   return await api.get('/api/user/scores', true); 
 }
 
-
+export async function getAdminSummary() {
+  return await api.get('/api/admin/summary', true); // 'true' to include JWT token
+}
 
 
 

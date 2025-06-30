@@ -53,7 +53,6 @@
 import navbar from './navbar.vue';
 import { getSubjects } from '@/services/authService';
 import {deleteSubject} from '@/services/authService';
-import { getChaptersBySubject } from '@/services/authService';
 
 export default {
   components: { navbar },

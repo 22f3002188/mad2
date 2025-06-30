@@ -26,7 +26,7 @@
 
           </li>
           <li class="nav-item">
-            <router-link class="nav-link nav-tab" to="/summary">
+            <router-link class="nav-link nav-tab" to="/admin/adminsummary">
               <i class="bi bi-clipboard-data-fill me-1"></i> Summary
             </router-link>
           </li>

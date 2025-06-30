@@ -124,7 +124,14 @@ const routes = [
   name: 'userscores',
   component: () => import('@/views/users/userscores.vue'),
   meta: { requiresAuth: true, role: 'user' }
-}
+},
+{
+  path: '/admin/adminsummary',
+  name: 'adminsummary',
+  component: () => import('@/views/admin/adminsummary.vue'),
+  meta: { requiresAuth: true, role: 'admin' }
+},
+
 
 
 

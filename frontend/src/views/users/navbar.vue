@@ -30,7 +30,7 @@
             </router-link>
           </li>
           <li class="nav-item">
-            <router-link class="nav-link nav-tab" to="/summary">
+            <router-link class="nav-link nav-tab" to="/users/usersummary">
               <i class="bi bi-journal-text me-1"></i> Summary
             </router-link>
           </li>
@@ -40,18 +40,6 @@
             </a>
           </li>
         </ul>
-
-        <!-- Search -->
-        <form class="d-flex" @submit.prevent="search">
-          <div class="input-group search-box">
-            <input
-              v-model="query"
-              class="form-control border-0"
-              placeholder="Search quizzes or subjects..."
-            />
-            <button class="btn btn-outline-light px-3" type="submit">Go</button>
-          </div>
-        </form>
 
         <!-- User name -->
         <span class="navbar-text text-white fw-semibold ms-3 d-none d-lg-block">
