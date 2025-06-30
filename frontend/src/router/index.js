@@ -118,6 +118,12 @@ const routes = [
   name: 'attemptquiz',
   component: () => import('@/views/users/attemptquiz.vue'),
   meta: { requiresAuth: true, role: 'user' }
+},
+{
+  path: '/users/userscores',
+  name: 'userscores',
+  component: () => import('@/views/users/userscores.vue'),
+  meta: { requiresAuth: true, role: 'user' }
 }
 
 

@@ -92,6 +92,11 @@ export async function updateQuestion(quizId, questionId, data) {
   return await api.put(`/api/quizzes/${quizId}/questions/${questionId}`, data, true);
 }
 
+export async function getUserScores() {
+  return await api.get('/api/user/scores', true); 
+}
+
+
 
 
 

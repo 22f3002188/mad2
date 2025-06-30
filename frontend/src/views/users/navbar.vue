@@ -20,12 +20,12 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto d-flex gap-2">
           <li class="nav-item">
-            <router-link class="nav-link nav-tab" to="/userdashboard">
+            <router-link class="nav-link nav-tab" to="/users/userdashboard">
               <i class="bi bi-house-door-fill me-1"></i> Home
             </router-link>
           </li>
           <li class="nav-item">
-            <router-link class="nav-link nav-tab" to="/userscores">
+            <router-link class="nav-link nav-tab" to="/users/userscores">
               <i class="bi bi-graph-up-arrow me-1"></i> Scores
             </router-link>
           </li>

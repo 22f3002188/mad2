@@ -1105,7 +1105,7 @@ def get_user_quizzes():
     Get all quizzes with chapter and subject info for logged-in user
     ---
     tags:
-      - Quiz
+      - User
     security:
       - Bearer: []
     responses:
@@ -1133,6 +1133,26 @@ def get_user_quizzes():
 @app.route('/api/user/quiz/<int:quiz_id>', methods=['GET'])
 @jwt_required()
 def get_quiz_details(quiz_id):
+    """
+    Get details of a specific quiz including questions  and chapter info
+    ---
+    tags:
+      - User
+    parameters:
+      - name: quiz_id
+        in: path
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Quiz details with questions and chapter info
+      404:
+        description: Quiz not found
+      500:
+        description: Internal server error
+    security:
+      - Bearer: []
+    """
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -1179,6 +1199,39 @@ def get_quiz_details(quiz_id):
 @app.route('/api/user/quiz/<int:quiz_id>/submit', methods=['POST'])
 @jwt_required()
 def submit_quiz(quiz_id):
+    """
+    Submit answers for a quiz and calculate score
+    ---
+    tags:
+      - User
+    parameters:
+      - name: quiz_id
+        in: path
+        required: true
+        type: integer 
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties: 
+              answers:
+                type: object
+                additionalProperties:
+                  type: string
+    responses:  
+      200:
+        description: Quiz submitted successfully with score
+      400:
+        description: Answers not provided or invalid input
+      404:
+        description: Quiz or questions not found
+      500:
+        description: Internal server error
+    security:   
+      - Bearer: []
+    """
     try:
         # Get user email from JWT token
         user_email = get_jwt_identity()
@@ -1225,7 +1278,43 @@ def submit_quiz(quiz_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# return user score list
+@app.route('/api/user/scores', methods=['GET'])
+@jwt_required()
+def get_user_scores():
+    """
+    Get all scores for the logged-in user
+    ---
+    tags:
+      - User
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of scores with quiz and chapter info
+    """
+    try:
+        user_email = get_jwt_identity()
+        conn = get_connection()
+        cursor = conn.cursor()
 
+        # Join score -> quiz -> chapters -> subjects to get all names in one query
+        cursor.execute('''
+            SELECT s.id, s.score, s.date_attempt, q.quiz_name, c.name AS chapter, sub.name AS subject
+            FROM score s
+            JOIN quiz q ON s.quiz_id = q.id
+            JOIN chapters c ON q.chapter_id = c.id
+            JOIN subjects sub ON c.subject_id = sub.id
+            WHERE s.user_email = ?
+            ORDER BY s.date_attempt DESC
+        ''', (user_email,))
+        scores = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        return jsonify({"scores": scores}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 
