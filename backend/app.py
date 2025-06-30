@@ -4,9 +4,9 @@ from flask import abort
 from functools import wraps
 from flask_cors import CORS
 from flasgger import Swagger
-from datetime import timedelta
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
-from models import init_db, create_admin, get_connection, user_to_dict, subject_to_dict, chapter_to_dict, quiz_to_dict, score_to_dict
+from models import init_db, create_admin, get_connection, question_to_dict, user_to_dict, subject_to_dict, chapter_to_dict, quiz_to_dict, score_to_dict
 from flask_jwt_extended import (JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt)
 
 # Initialize Flask app
@@ -152,14 +152,14 @@ def login():
     if user:
         user_dict = user_to_dict(user)
 
-        # Create token: identity must be a string
+        # Create JWT access token with role
         access_token = create_access_token(
             identity=user_dict['email'],
             additional_claims={"role": user_dict['role']},
             expires_delta=timedelta(hours=1)
         )
 
-        # Optional: Store token in DB
+        # Optional: Store token
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -171,13 +171,29 @@ def login():
         conn.commit()
         conn.close()
 
-        return jsonify({"message": "Login successful", "user": user_dict, "access_token": access_token}), 200
+        # Return only required user data
+        return jsonify({
+            "message": "Login successful",
+            "access_token": access_token,
+            "user": {
+                "id": user_dict['id'],
+                "email": user_dict['email'],
+                "role": user_dict['role']
+            }
+        }), 200
     else:
         conn.close()
-        return jsonify({"error": "Invalid email or password"}), 401   
-    
+        return jsonify({"error": "Invalid email or password"}), 401
 
-
+# @jwt.token_in_blocklist_loader
+# def check_if_token_revoked(jwt_header, jwt_payload):
+#     jti = jwt_payload['jti']
+#     conn = get_connection()
+#     cursor = conn.cursor()
+#     cursor.execute('SELECT 1 FROM revoked_tokens WHERE jti = ?', (jti,))
+#     token_revoked = cursor.fetchone() is not None
+#     conn.close()
+#     return token_revoked
 
 @app.route('/api/logout', methods=['POST'])
 @jwt_required()
@@ -1080,6 +1096,135 @@ def delete_user(user_id):
     conn.close()
 
     return jsonify({"message": "User deleted successfully"}), 200
+
+
+@app.route('/api/user/quizzes', methods=['GET'])
+@jwt_required()
+def get_user_quizzes():
+    """
+    Get all quizzes with chapter and subject info for logged-in user
+    ---
+    tags:
+      - Quiz
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of quizzes with chapter and subject info
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        # Join quiz -> chapters -> subjects to get all names in one query
+        cursor.execute('''
+            SELECT q.id, q.quiz_name, q.date_of_quiz, q.time_duration,
+                   c.name AS chapter, s.name AS subject
+            FROM quiz q
+            JOIN chapters c ON q.chapter_id = c.id
+            JOIN subjects s ON c.subject_id = s.id
+            ORDER BY q.date_of_quiz DESC
+        ''')
+        quizzes = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jsonify({"quizzes": quizzes}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/user/quiz/<int:quiz_id>', methods=['GET'])
+@jwt_required()
+def get_quiz_details(quiz_id):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Get quiz with chapter and subject info
+        cursor.execute('''
+            SELECT q.id, q.quiz_name, q.date_of_quiz, q.time_duration,
+                   c.id as chapter_id, c.name AS chapter_name, s.id as subject_id, s.name AS subject_name
+            FROM quiz q
+            JOIN chapters c ON q.chapter_id = c.id
+            JOIN subjects s ON c.subject_id = s.id
+            WHERE q.id = ?
+        ''', (quiz_id,))
+        quiz_row = cursor.fetchone()
+        if not quiz_row:
+            return jsonify({"error": "Quiz not found"}), 404
+
+        quiz = {
+            "id": quiz_row["id"],
+            "quiz_name": quiz_row["quiz_name"],
+            "date_of_quiz": quiz_row["date_of_quiz"],
+            "time_duration": quiz_row["time_duration"],
+            "chapter": {
+                "id": quiz_row["chapter_id"],
+                "name": quiz_row["chapter_name"]
+            },
+            "subject": {
+                "id": quiz_row["subject_id"],
+                "name": quiz_row["subject_name"]
+            }
+        }
+
+        # Get questions for this quiz
+        cursor.execute('''
+            SELECT * FROM question WHERE quiz_id = ?
+        ''', (quiz_id,))
+        questions = [question_to_dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        return jsonify({"quiz": quiz, "questions": questions}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/user/quiz/<int:quiz_id>/submit', methods=['POST'])
+@jwt_required()
+def submit_quiz(quiz_id):
+    try:
+        user_id = get_jwt_identity()  # Assuming this returns the user id
+
+        data = request.get_json()
+        if not data or "answers" not in data:
+            return jsonify({"error": "Answers not provided"}), 400
+
+        answers = data["answers"]  # Dict: { question_id: selected_option, ... }
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Fetch correct answers for the quiz questions
+        cursor.execute('SELECT id, correct_answer FROM question WHERE quiz_id = ?', (quiz_id,))
+        questions = cursor.fetchall()
+
+        if not questions:
+            return jsonify({"error": "Quiz or questions not found"}), 404
+
+        total_questions = len(questions)
+        correct_count = 0
+
+        for q in questions:
+            qid = q["id"]
+            correct_answer = q["correct_answer"]
+            user_answer = answers.get(str(qid))  # keys as string since JSON keys are strings
+            if user_answer and user_answer == correct_answer:
+                correct_count += 1
+
+        score = (correct_count / total_questions) * 100  # score in percentage
+
+        # Save the score with current date
+        date_attempt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute('''
+            INSERT INTO score (user_id, quiz_id, date_attempt, score)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, quiz_id, date_attempt, score))
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": "Quiz submitted", "score": score}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 
 

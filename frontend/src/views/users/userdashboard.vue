@@ -66,13 +66,15 @@ export default {
   },
   methods: {
     async fetchQuizzes() {
-      try {
-        const response = await api.get('/api/user/quizzes', true); 
-        this.quizzes = response.quizzes;
-      } catch (error) {
-        console.error('Failed to load quizzes:', error.message);
-      }
-    },
+    try {
+      const response = await api.get('/api/user/quizzes', true);
+      console.log('Quiz API response:', response);
+      this.quizzes = response.quizzes;
+    } catch (error) {
+      console.error('Failed to load quizzes:', error.message);
+    }
+  },
+
     formatDate(dateStr) {
       const date = new Date(dateStr);
       return date.toISOString().split('T')[0];
@@ -86,8 +88,10 @@ export default {
       return this.formatDate(dateStr) > today;
     },
     startQuiz(quizId) {
-      this.$router.push({ name: 'AttemptQuiz', params: { quizId } }); 
-    },
+    console.log('Starting quiz with id:', quizId);
+    this.$router.push({ name: 'attemptquiz', params: { quizId } });
+  },
+
   },
 };
 </script>
