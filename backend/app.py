@@ -14,6 +14,8 @@ from flask_jwt_extended import (JWTManager, create_access_token, jwt_required, g
 # Initialize Flask app
 app = Flask(__name__)
 
+
+
 # Swagger JWT lock setup
 app.config['SWAGGER'] = {
     'title': 'Your API',
@@ -187,15 +189,6 @@ def login():
         conn.close()
         return jsonify({"error": "Invalid email or password"}), 401
 
-# @jwt.token_in_blocklist_loader
-# def check_if_token_revoked(jwt_header, jwt_payload):
-#     jti = jwt_payload['jti']
-#     conn = get_connection()
-#     cursor = conn.cursor()
-#     cursor.execute('SELECT 1 FROM revoked_tokens WHERE jti = ?', (jti,))
-#     token_revoked = cursor.fetchone() is not None
-#     conn.close()
-#     return token_revoked
 
 @app.route('/api/logout', methods=['POST'])
 @jwt_required()
@@ -226,6 +219,8 @@ def logout():
 
 
 #--------------------------------------------------SUBJECTS ENDPOINTS---------------------------------------------------
+
+# === Add New Subject ===
 @app.route('/api/subjects', methods=['POST'])
 @admin_required
 def add_subject():
@@ -246,10 +241,8 @@ def add_subject():
             description:
               type: string
     responses:
-      200:  
-        description: Subject added successfully
-      400:
-        description: Name and description are required or subject name already exists
+      200: Subject added successfully
+      400: Validation error or duplicate subject
     security:
       - Bearer: []
     """
@@ -269,6 +262,7 @@ def add_subject():
             (name, description)
         )
         conn.commit()
+
         return jsonify({'message': 'Subject added successfully'}), 200
 
     except sqlite3.IntegrityError:
@@ -277,6 +271,7 @@ def add_subject():
     finally:
         conn.close()
 
+# === Get All Subjects (Cached for 5 min) ===
 @app.route('/api/get_subjects', methods=['GET'])
 @admin_required
 def get_subjects():
@@ -288,11 +283,10 @@ def get_subjects():
     security:
       - Bearer: []
     responses:
-      200:
-        description: List of subjects
-      403:
-        description: Admin access required
+      200: List of subjects
+      500: Internal server error
     """
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM subjects')
@@ -303,10 +297,12 @@ def get_subjects():
 
     return jsonify({"subjects": subject_list}), 200
 
+# === Update Existing Subject ===
 @app.route('/api/subjects/<int:subject_id>', methods=['PUT'])
 @admin_required
 def update_subject(subject_id):
-    """Update an existing subject (admin only)
+    """
+    Update an existing subject (admin only)
     ---
     tags:
       - Admin
@@ -326,12 +322,8 @@ def update_subject(subject_id):
             description:
               type: string
     responses:
-      200:
-        description: Subject updated successfully
-      400:
-        description: Name and description are required
-      404:
-        description: Subject not found
+      200: Subject updated successfully
+      400: Name or description missing
     security:
       - Bearer: []
     """
@@ -344,17 +336,22 @@ def update_subject(subject_id):
 
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('UPDATE subjects SET name = ?, description = ? WHERE id = ?', (name, description, subject_id))
+    cursor.execute(
+        'UPDATE subjects SET name = ?, description = ? WHERE id = ?',
+        (name, description, subject_id)
+    )
     conn.commit()
     conn.close()
 
+
     return jsonify({"message": "Subject updated successfully"}), 200
 
-
+# === Delete Subject ===
 @app.route('/api/subjects/<int:subject_id>', methods=['DELETE'])
 @admin_required
 def delete_subject(subject_id):
-    """Delete a subject (admin only)
+    """
+    Delete a subject (admin only)
     ---
     tags:
       - Admin
@@ -363,11 +360,8 @@ def delete_subject(subject_id):
         in: path
         required: true
         type: integer
-    responses:   
-      200:
-        description: Subject deleted successfully
-      404:    
-        description: Subject not found
+    responses:
+      200: Subject deleted successfully
     security:
       - Bearer: []
     """
@@ -376,9 +370,11 @@ def delete_subject(subject_id):
     cursor.execute('DELETE FROM subjects WHERE id = ?', (subject_id,))
     conn.commit()
     conn.close()
+    return jsonify({"message": "Subject deleted successfully"}), 200
 
-    return jsonify({"message": "Subject deleted successfully"}), 200 
 
+
+#--------------------------------------------------CHAPTERS ENDPOINTS---------------------------------------------------
 
 @app.route('/api/subjects/<int:subject_id>/chapters', methods=['GET'])
 @admin_required
@@ -1540,9 +1536,6 @@ def api_search():
     }
 
     return jsonify(results), 200
-
-
-
 
 
 if __name__ == '__main__':
