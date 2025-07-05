@@ -298,7 +298,6 @@ def logout():
 
 
 #--------------------------------------------------SUBJECTS ENDPOINTS---------------------------------------------------
-
 @app.route('/api/subjects', methods=['POST'])
 @admin_required
 def add_subject():
@@ -307,41 +306,43 @@ def add_subject():
     ---
     tags:
       - Admin
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - name
-              - description
-            properties:
-              name:
-                type: string
-              description:
-                type: string
+    consumes:
+      - application/json
     security:
       - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+            - description
+          properties:
+            name:
+              type: string
+              example: "Mathematics"
+            description:
+              type: string
+              example: "Covers Algebra, Calculus, and Geometry"
     responses:
       200:
         description: Subject added successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Subject added successfully"
       400:
         description: Validation error or duplicate subject
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Subject name already exists"
     """
     data = request.get_json()
     name = data.get('name')
@@ -368,12 +369,10 @@ def add_subject():
     finally:
         conn.close()
 
-
 @app.route('/api/get_subjects', methods=['GET'])
 @cache.cached(timeout=300, key_prefix="all_subjects")
 @admin_required
 def get_subjects():
-    print("/api/get_subjects route called")
     """
     Get list of all subjects (Admin only)
     ---
@@ -384,32 +383,30 @@ def get_subjects():
     responses:
       200:
         description: List of subjects returned successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                subjects:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      name:
-                        type: string
-                      description:
-                        type: string
+        schema:
+          type: object
+          properties:
+            subjects:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  description:
+                    type: string
       500:
         description: Internal server error
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
     """
+    print("/api/get_subjects route called")
+
     try:
         print("Cache MISS — fetching subjects from DB")
         conn = get_connection()
@@ -419,13 +416,11 @@ def get_subjects():
         conn.close()
 
         subject_list = [subject_to_dict(subject) for subject in subjects]
-
         return jsonify({"subjects": subject_list}), 200
 
     except Exception as e:
         print("Error fetching subjects:", e)
         return jsonify({"error": "Internal server error"}), 500
-
 
 
 @app.route('/api/subjects/<int:subject_id>', methods=['PUT'])
@@ -436,47 +431,48 @@ def update_subject(subject_id):
     ---
     tags:
       - Admin
+    consumes:
+      - application/json
+    security:
+      - Bearer: []
     parameters:
       - name: subject_id
         in: path
         required: true
+        type: integer
+        description: ID of the subject to update
+      - name: body
+        in: body
+        required: true
         schema:
-          type: integer
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - name
-              - description
-            properties:
-              name:
-                type: string
-              description:
-                type: string
-    security:
-      - Bearer: []
+          type: object
+          required:
+            - name
+            - description
+          properties:
+            name:
+              type: string
+              example: "Physics"
+            description:
+              type: string
+              example: "Covers mechanics, optics, and thermodynamics"
     responses:
       200:
         description: Subject updated successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Subject updated successfully"
       400:
         description: Name or description missing
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Name and description are required"
     """
     data = request.get_json()
     name = data.get('name')
@@ -493,9 +489,10 @@ def update_subject(subject_id):
     )
     conn.commit()
     conn.close()
-    cache.delete("all_subjects") 
+    cache.delete("all_subjects")
 
     return jsonify({"message": "Subject updated successfully"}), 200
+
 
 
 @app.route('/api/subjects/<int:subject_id>', methods=['DELETE'])
@@ -622,7 +619,6 @@ def get_chapters_by_subject(subject_id):
         ]
     }), 200
 
-
 @app.route('/api/subjects/<int:subject_id>/chapters', methods=['POST'])
 @admin_required
 def add_chapter(subject_id):
@@ -631,46 +627,47 @@ def add_chapter(subject_id):
     ---
     tags:
       - Admin
+    consumes:
+      - application/json
+    security:
+      - Bearer: []
     parameters:
       - name: subject_id
         in: path
         required: true
+        type: integer
+        description: ID of the subject
+      - name: body
+        in: body
+        required: true
         schema:
-          type: integer
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - name
-            properties:
-              name:
-                type: string
-              description:
-                type: string
-    security:
-      - Bearer: []
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              example: "Trigonometry"
+            description:
+              type: string
+              example: "Covers sin, cos, tan and their applications"
     responses:
       201:
         description: Chapter added successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Chapter added successfully"
       400:
         description: Chapter name is required or subject not found
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Chapter name is required"
     """
     data = request.get_json()
     name = data.get('name')
@@ -688,7 +685,6 @@ def add_chapter(subject_id):
 
     return jsonify({'message': 'Chapter added successfully'}), 201
 
-
 @app.route('/api/chapters/<int:chapter_id>', methods=['PUT'])
 @admin_required
 def edit_chapter(chapter_id):
@@ -697,47 +693,48 @@ def edit_chapter(chapter_id):
     ---
     tags:
       - Admin
+    consumes:
+      - application/json
+    security:
+      - Bearer: []
     parameters:
       - name: chapter_id
         in: path
         required: true
+        type: integer
+        description: ID of the chapter
+      - name: body
+        in: body
+        required: true
         schema:
-          type: integer
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - name
-              - description
-            properties:
-              name:
-                type: string
-              description:
-                type: string
-    security:
-      - Bearer: []
+          type: object
+          required:
+            - name
+            - description
+          properties:
+            name:
+              type: string
+              example: "New Chapter Name"
+            description:
+              type: string
+              example: "Updated description for the chapter"
     responses:
       200:
         description: Chapter updated successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Chapter updated successfully"
       404:
         description: Chapter not found
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Chapter not found"
     """
     data = request.get_json()
     name = data.get('name')
@@ -883,7 +880,6 @@ def get_quizzes_by_chapter(chapter_id):
         ]
     }), 200
 
-
 @app.route('/api/chapters/<int:chapter_id>/quizzes', methods=['POST'])
 @admin_required
 def add_quiz(chapter_id):
@@ -892,60 +888,61 @@ def add_quiz(chapter_id):
     ---
     tags:
       - Admin
+    consumes:
+      - application/json
+    security:
+      - Bearer: []
     parameters:
       - name: chapter_id
         in: path
         required: true
+        type: integer
+        description: Chapter ID
+      - name: body
+        in: body
+        required: true
         schema:
-          type: integer
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - quiz_name
-              - date_of_quiz
-              - time_duration
-            properties:
-              quiz_name:
-                type: string
-              date_of_quiz:
-                type: string
-                format: date
-              time_duration:
-                type: string
+          type: object
+          required:
+            - quiz_name
+            - date_of_quiz
+            - time_duration
+          properties:
+            quiz_name:
+              type: string
+              example: "Quiz 1"
+            date_of_quiz:
+              type: string
+              format: date
+              example: "2025-07-05"
+            time_duration:
+              type: string
+              example: "30 minutes"
     responses:
       201:
         description: Quiz added successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Quiz added successfully"
       400:
         description: All fields are required
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "All fields are required"
       409:
         description: Quiz with same name exists
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
-    security:
-      - Bearer: []
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Quiz with same name exists"
     """
     data = request.get_json()
     quiz_name = data.get('quiz_name')
@@ -971,7 +968,6 @@ def add_quiz(chapter_id):
 
     return jsonify({'message': 'Quiz added successfully'}), 201
 
-
 @app.route('/api/chapters/<int:chapter_id>/quizzes/<int:quiz_id>', methods=['PUT'])
 @admin_required
 def update_quiz(chapter_id, quiz_id):
@@ -980,65 +976,66 @@ def update_quiz(chapter_id, quiz_id):
     ---
     tags:
       - Admin
+    consumes:
+      - application/json
+    security:
+      - Bearer: []
     parameters:
       - name: chapter_id
         in: path
         required: true
-        schema:
-          type: integer
+        type: integer
+        description: Chapter ID
       - name: quiz_id
         in: path
         required: true
+        type: integer
+        description: Quiz ID
+      - name: body
+        in: body
+        required: true
         schema:
-          type: integer
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - quiz_name
-              - date_of_quiz
-              - time_duration
-            properties:
-              quiz_name:
-                type: string
-              date_of_quiz:
-                type: string
-                format: date
-              time_duration:
-                type: string
+          type: object
+          required:
+            - quiz_name
+            - date_of_quiz
+            - time_duration
+          properties:
+            quiz_name:
+              type: string
+              example: "Updated Quiz"
+            date_of_quiz:
+              type: string
+              format: date
+              example: "2025-07-10"
+            time_duration:
+              type: string
+              example: "45 minutes"
     responses:
       200:
         description: Quiz updated successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Quiz updated successfully"
       400:
         description: Invalid input
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Invalid input"
       404:
         description: Quiz not found
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
-    security:
-      - Bearer: []
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Quiz not found"
     """
     data = request.get_json()
     quiz_name = data.get('quiz_name')
@@ -1215,70 +1212,71 @@ def add_question(quiz_id):
     ---
     tags:
       - Admin
+    consumes:
+      - application/json
+    security:
+      - Bearer: []
     parameters:
       - name: quiz_id
         in: path
         required: true
+        type: integer
+        description: ID of the quiz
+      - name: body
+        in: body
+        required: true
         schema:
-          type: integer
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - question_statement
-              - option1
-              - option2
-              - option3
-              - option4
-              - correct_answer
-            properties:
-              question_statement:
-                type: string
-              option1:
-                type: string
-              option2:
-                type: string
-              option3:
-                type: string
-              option4:
-                type: string
-              correct_answer:
-                type: string
-    security:
-      - Bearer: []
+          type: object
+          required:
+            - question_statement
+            - option1
+            - option2
+            - option3
+            - option4
+            - correct_answer
+          properties:
+            question_statement:
+              type: string
+              example: "What is the capital of France?"
+            option1:
+              type: string
+              example: "Berlin"
+            option2:
+              type: string
+              example: "Madrid"
+            option3:
+              type: string
+              example: "Paris"
+            option4:
+              type: string
+              example: "Rome"
+            correct_answer:
+              type: string
+              example: "option3"
     responses:
       201:
         description: Question added successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                question_id:
-                  type: integer
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            question_id:
+              type: integer
       400:
         description: Missing required fields
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
       404:
         description: Quiz not found
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
     """
     data = request.get_json()
     required_fields = ['question_statement', 'option1', 'option2', 'option3', 'option4', 'correct_answer']
@@ -1310,7 +1308,6 @@ def add_question(quiz_id):
 
     return jsonify({'message': 'Question added successfully', 'question_id': question_id}), 201
 
-
 @app.route('/api/quizzes/<int:quiz_id>/questions/<int:question_id>', methods=['PUT'])
 @admin_required
 def update_question(quiz_id, question_id):
@@ -1319,57 +1316,60 @@ def update_question(quiz_id, question_id):
     ---
     tags:
       - Admin
+    consumes:
+      - application/json
+    security:
+      - Bearer: []
     parameters:
       - name: quiz_id
         in: path
         required: true
-        schema:
-          type: integer
+        type: integer
+        description: ID of the quiz
       - name: question_id
         in: path
         required: true
+        type: integer
+        description: ID of the question
+      - name: body
+        in: body
+        required: true
         schema:
-          type: integer
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              question_statement:
-                type: string
-              option1:
-                type: string
-              option2:
-                type: string
-              option3:
-                type: string
-              option4:
-                type: string
-              correct_answer:
-                type: string
-    security:
-      - Bearer: []
+          type: object
+          properties:
+            question_statement:
+              type: string
+              example: "Updated question?"
+            option1:
+              type: string
+              example: "Option A"
+            option2:
+              type: string
+              example: "Option B"
+            option3:
+              type: string
+              example: "Option C"
+            option4:
+              type: string
+              example: "Option D"
+            correct_answer:
+              type: string
+              example: "option1"
     responses:
       200:
         description: Question updated successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
       404:
         description: Question not found
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
     """
     data = request.get_json()
     conn = get_connection()
