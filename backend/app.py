@@ -18,11 +18,10 @@ celery = make_celery(app)
 import tasks 
 
 
-
-# Swagger JWT lock setup
 app.config['SWAGGER'] = {
-    'title': 'Your API',
+    'title': 'Quiz Nation API',
     'uiversion': 3,
+    'specs_route': '/apidocs/',  # Optional: Customize Swagger UI route
     'securityDefinitions': {
         'Bearer': {
             'type': 'apiKey',
@@ -30,8 +29,7 @@ app.config['SWAGGER'] = {
             'in': 'header',
             'description': 'JWT Authorization header using the Bearer scheme. Example: "Bearer {token}"'
         }
-    },
-    'security': [{'Bearer': []}]
+    }
 }
 # CORS
 CORS(app, supports_credentials=True)
@@ -72,29 +70,51 @@ def signup():
     ---
     tags:
       - Registration
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          type: object
-          properties:
-            email:
-              type: string
-            password:
-              type: string
-            full_name:
-              type: string
-            qualification:
-              type: string
-            dob:
-              type: string
-              format: date
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - email
+              - password
+              - full_name
+              - qualification
+              - dob
+            properties:
+              email:
+                type: string
+              password:
+                type: string
+              full_name:
+                type: string
+              qualification:
+                type: string
+              dob:
+                type: string
+                format: date
     responses:
       201:
         description: User registered
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                user_id:
+                  type: integer
       400:
         description: Email already exists
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     data = request.get_json()
     email = data.get('email')
@@ -103,6 +123,9 @@ def signup():
     qualification = data.get('qualification')
     dob = data.get('dob')
     role = 'user'
+
+    if not all([email, password, full_name, qualification, dob]):
+        return jsonify({'error': 'All fields are required'}), 400
 
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
@@ -122,6 +145,7 @@ def signup():
     except sqlite3.IntegrityError:
         return jsonify({"error": "Email already exists"}), 400
 
+
 @app.route('/api/login', methods=['POST'])
 def login():
     """
@@ -129,26 +153,60 @@ def login():
     ---
     tags:
       - Registration
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          type: object
-          properties:
-            email:
-              type: string
-            password:
-              type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - email
+              - password
+            properties:
+              email:
+                type: string
+              password:
+                type: string
     responses:
       200:
         description: Login successful
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                access_token:
+                  type: string
+                user:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    full_name:
+                      type: string
+                    email:
+                      type: string
+                    role:
+                      type: string
       401:
         description: Invalid credentials
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
+
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required'}), 400
+
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
     conn = get_connection()
@@ -159,14 +217,12 @@ def login():
     if user:
         user_dict = user_to_dict(user)
 
-        # Create JWT access token with role
         access_token = create_access_token(
             identity=user_dict['email'],
             additional_claims={"role": user_dict['role']},
             expires_delta=timedelta(hours=1)
         )
 
-        # Optional: Store token
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -177,7 +233,7 @@ def login():
         cursor.execute('INSERT INTO user_tokens (email, token) VALUES (?, ?)', (user_dict['email'], access_token))
         conn.commit()
         conn.close()
-        # Return only required user data
+
         return jsonify({
             "message": "Login successful",
             "access_token": access_token,
@@ -206,6 +262,13 @@ def logout():
     responses:
       200:
         description: Logout successful
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
     """
     jti = get_jwt()['jti']
     conn = get_connection()
@@ -218,12 +281,11 @@ def logout():
     cursor.execute('INSERT INTO revoked_tokens (jti) VALUES (?)', (jti,))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Logout successful"}), 200    
+    return jsonify({"message": "Logout successful"}), 200
 
 
 #--------------------------------------------------SUBJECTS ENDPOINTS---------------------------------------------------
 
-# === Add New Subject ===
 @app.route('/api/subjects', methods=['POST'])
 @admin_required
 def add_subject():
@@ -232,22 +294,41 @@ def add_subject():
     ---
     tags:
       - Admin
-    parameters:
-      - name: body    
-        in: body
-        required: true
-        schema:
-          type: object
-          properties:
-            name:
-              type: string
-            description:
-              type: string
-    responses:
-      200: Subject added successfully
-      400: Validation error or duplicate subject
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - description
+            properties:
+              name:
+                type: string
+              description:
+                type: string
     security:
       - Bearer: []
+    responses:
+      200:
+        description: Subject added successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      400:
+        description: Validation error or duplicate subject
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     data = request.get_json()
     name = data.get('name')
@@ -265,7 +346,6 @@ def add_subject():
             (name, description)
         )
         conn.commit()
-
         return jsonify({'message': 'Subject added successfully'}), 200
 
     except sqlite3.IntegrityError:
@@ -274,7 +354,7 @@ def add_subject():
     finally:
         conn.close()
 
-# === Get All Subjects (Cached for 5 min) ===
+
 @app.route('/api/get_subjects', methods=['GET'])
 @admin_required
 def get_subjects():
@@ -286,21 +366,49 @@ def get_subjects():
     security:
       - Bearer: []
     responses:
-      200: List of subjects
-      500: Internal server error
+      200:
+        description: List of subjects returned successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subjects:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      description:
+                        type: string
+      500:
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM subjects')
+        subjects = cursor.fetchall()
+        conn.close()
 
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM subjects')
-    subjects = cursor.fetchall()
-    conn.close()
+        subject_list = [subject_to_dict(subject) for subject in subjects]
+        return jsonify({"subjects": subject_list}), 200
 
-    subject_list = [subject_to_dict(subject) for subject in subjects]
+    except Exception as e:
+        print("Error fetching subjects:", e)
+        return jsonify({"error": "Internal server error"}), 500
 
-    return jsonify({"subjects": subject_list}), 200
 
-# === Update Existing Subject ===
 @app.route('/api/subjects/<int:subject_id>', methods=['PUT'])
 @admin_required
 def update_subject(subject_id):
@@ -313,22 +421,43 @@ def update_subject(subject_id):
       - name: subject_id
         in: path
         required: true
-        type: integer
-      - name: body
-        in: body
-        required: true
         schema:
-          type: object
-          properties:
-            name:
-              type: string
-            description:
-              type: string
-    responses:
-      200: Subject updated successfully
-      400: Name or description missing
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - description
+            properties:
+              name:
+                type: string
+              description:
+                type: string
     security:
       - Bearer: []
+    responses:
+      200:
+        description: Subject updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      400:
+        description: Name or description missing
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     data = request.get_json()
     name = data.get('name')
@@ -346,10 +475,9 @@ def update_subject(subject_id):
     conn.commit()
     conn.close()
 
-
     return jsonify({"message": "Subject updated successfully"}), 200
 
-# === Delete Subject ===
+
 @app.route('/api/subjects/<int:subject_id>', methods=['DELETE'])
 @admin_required
 def delete_subject(subject_id):
@@ -362,42 +490,93 @@ def delete_subject(subject_id):
       - name: subject_id
         in: path
         required: true
-        type: integer
-    responses:
-      200: Subject deleted successfully
+        schema:
+          type: integer
     security:
       - Bearer: []
+    responses:
+      200:
+        description: Subject deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      404:
+        description: Subject not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM subjects WHERE id = ?', (subject_id,))
+    cursor.execute("SELECT id FROM subjects WHERE id = ?", (subject_id,))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({"error": "Subject not found"}), 404
+
+    cursor.execute("DELETE FROM subjects WHERE id = ?", (subject_id,))
     conn.commit()
     conn.close()
     return jsonify({"message": "Subject deleted successfully"}), 200
 
 
 
-#--------------------------------------------------CHAPTERS ENDPOINTS---------------------------------------------------
 
+#--------------------------------------------------CHAPTERS ENDPOINTS---------------------------------------------------
+# === Get All Chapters by Subject ===
 @app.route('/api/subjects/<int:subject_id>/chapters', methods=['GET'])
 @admin_required
 def get_chapters_by_subject(subject_id):
-    """Get all chapters for a specific subject (Admin only)
+    """
+    Get all chapters for a specific subject (Admin only)
     ---
     tags:
       - Admin
-    parameters:   
+    parameters:
       - name: subject_id
         in: path
         required: true
-        type: integer
-    responses:  
-      200:
-        description: List of chapters for the subject
-      404:
-        description: Subject not found
+        schema:
+          type: integer
     security:
       - Bearer: []
+    responses:
+      200:
+        description: List of chapters for the subject
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject_name:
+                  type: string
+                chapters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      description:
+                        type: string
+      404:
+        description: Subject not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     conn = get_connection()
     cursor = conn.cursor()
@@ -406,6 +585,7 @@ def get_chapters_by_subject(subject_id):
     subject = cursor.fetchone()
 
     if not subject:
+        conn.close()
         return jsonify({'error': 'Subject not found'}), 404
 
     subject_name = subject[0]
@@ -421,37 +601,57 @@ def get_chapters_by_subject(subject_id):
         ]
     }), 200
 
+
 @app.route('/api/subjects/<int:subject_id>/chapters', methods=['POST'])
 @admin_required
 def add_chapter(subject_id):
-    """Add a new chapter to a subject (admin only)
+    """
+    Add a new chapter to a subject (Admin only)
     ---
     tags:
       - Admin
-    parameters:   
+    parameters:
       - name: subject_id
-        in: path  
+        in: path
         required: true
-        type: integer
-      - name: body
-        in: body
-        required: true
-        schema: 
-          type: object
-          properties:
-            name:
-              type: string  
-            description:
-              type: string
+        schema:
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+    security:
+      - Bearer: []
     responses:
       201:
         description: Chapter added successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
       400:
         description: Chapter name is required or subject not found
-    security:
-      - Bearer: []
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
-    data = request.json
+    data = request.get_json()
     name = data.get('name')
     description = data.get('description')
 
@@ -467,6 +667,7 @@ def add_chapter(subject_id):
 
     return jsonify({'message': 'Chapter added successfully'}), 201
 
+
 @app.route('/api/chapters/<int:chapter_id>', methods=['PUT'])
 @admin_required
 def edit_chapter(chapter_id):
@@ -479,26 +680,45 @@ def edit_chapter(chapter_id):
       - name: chapter_id
         in: path
         required: true
-        type: integer
-      - name: body
-        in: body
-        required: true
         schema:
-          type: object
-          properties:
-            name:
-              type: string
-            description:
-              type: string
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - description
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+    security:
+      - Bearer: []
     responses:
       200:
         description: Chapter updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
       404:
         description: Chapter not found
-    security:
-      - Bearer: []
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
-    data = request.json
+    data = request.get_json()
     name = data.get('name')
     description = data.get('description')
 
@@ -506,9 +726,10 @@ def edit_chapter(chapter_id):
     cursor = conn.cursor()
     cursor.execute('SELECT id FROM chapters WHERE id = ?', (chapter_id,))
     if not cursor.fetchone():
+        conn.close()
         return jsonify({'error': 'Chapter not found'}), 404
 
-    cursor.execute('UPDATE chapters SET name = ?, description = ? WHERE id = ?', 
+    cursor.execute('UPDATE chapters SET name = ?, description = ? WHERE id = ?',
                    (name, description, chapter_id))
     conn.commit()
     conn.close()
@@ -520,7 +741,7 @@ def edit_chapter(chapter_id):
 @admin_required
 def delete_chapter(chapter_id):
     """
-    Delete a chapter (admin only)
+    Delete a chapter (Admin only)
     ---
     tags:
       - Admin
@@ -528,14 +749,29 @@ def delete_chapter(chapter_id):
       - name: chapter_id
         in: path
         required: true
-        type: integer
-    responses:
-      200:
-        description: Chapter deleted
-      404:
-        description: Chapter not found
+        schema:
+          type: integer
     security:
       - Bearer: []
+    responses:
+      200:
+        description: Chapter deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      404:
+        description: Chapter not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     conn = get_connection()
     cursor = conn.cursor()
@@ -550,6 +786,10 @@ def delete_chapter(chapter_id):
     conn.close()
     return jsonify({"message": "Chapter deleted"}), 200
 
+
+
+
+# ---------------------------------------------quiz--------------------------------------
 @app.route('/api/chapters/<int:chapter_id>/quizzes', methods=['GET'])
 @admin_required
 def get_quizzes_by_chapter(chapter_id):
@@ -558,23 +798,50 @@ def get_quizzes_by_chapter(chapter_id):
     ---
     tags:
       - Admin
-    parameters:   
+    parameters:
       - name: chapter_id
         in: path
         required: true
-        type: integer
-    responses:  
+        schema:
+          type: integer
+    responses:
       200:
         description: List of quizzes for the chapter
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                chapter_name:
+                  type: string
+                quizzes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      quiz_name:
+                        type: string
+                      date_of_quiz:
+                        type: string
+                      time_duration:
+                        type: string
       404:
         description: Chapter not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     security:
       - Bearer: []
     """
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Validate if chapter exists
     cursor.execute('SELECT name FROM chapters WHERE id = ?', (chapter_id,))
     chapter = cursor.fetchone()
 
@@ -582,63 +849,80 @@ def get_quizzes_by_chapter(chapter_id):
         conn.close()
         return jsonify({'error': 'Chapter not found'}), 404
 
-    chapter_name = chapter[0]
-
-    # Fetch all quizzes for the chapter
-    cursor.execute('''
-        SELECT id, quiz_name, date_of_quiz, time_duration 
-        FROM quiz 
-        WHERE chapter_id = ?
-    ''', (chapter_id,))
+    chapter_name = chapter['name'] if isinstance(chapter, dict) else chapter[0]
+    cursor.execute('SELECT id, quiz_name, date_of_quiz, time_duration FROM quiz WHERE chapter_id = ?', (chapter_id,))
     quizzes = cursor.fetchall()
     conn.close()
 
-    # Format and return response
     return jsonify({
         'chapter_name': chapter_name,
         'quizzes': [
-            {
-                'id': q[0],
-                'quiz_name': q[1],
-                'date_of_quiz': q[2],
-                'time_duration': q[3]
-            } for q in quizzes
+            {'id': q[0], 'quiz_name': q[1], 'date_of_quiz': q[2], 'time_duration': q[3]}
+            for q in quizzes
         ]
     }), 200
+
 
 @app.route('/api/chapters/<int:chapter_id>/quizzes', methods=['POST'])
 @admin_required
 def add_quiz(chapter_id):
     """
-    Add a new quiz to a chapter (admin only)
+    Add a new quiz to a chapter (Admin only)
     ---
     tags:
       - Admin
-    parameters:   
-      - name: chapter_id  
+    parameters:
+      - name: chapter_id
         in: path
         required: true
-        type: integer
-      - name: body
-        in: body
-        required: true
         schema:
-          type: object
-          properties:
-            quiz_name:
-              type: string
-            date_of_quiz:
-              type: string
-              format: date
-            time_duration:
-              type: string
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - quiz_name
+              - date_of_quiz
+              - time_duration
+            properties:
+              quiz_name:
+                type: string
+              date_of_quiz:
+                type: string
+                format: date
+              time_duration:
+                type: string
     responses:
       201:
         description: Quiz added successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
       400:
         description: All fields are required
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
       409:
         description: Quiz with same name exists
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     security:
       - Bearer: []
     """
@@ -666,6 +950,7 @@ def add_quiz(chapter_id):
 
     return jsonify({'message': 'Quiz added successfully'}), 201
 
+
 @app.route('/api/chapters/<int:chapter_id>/quizzes/<int:quiz_id>', methods=['PUT'])
 @admin_required
 def update_quiz(chapter_id, quiz_id):
@@ -678,30 +963,59 @@ def update_quiz(chapter_id, quiz_id):
       - name: chapter_id
         in: path
         required: true
-        type: integer
+        schema:
+          type: integer
       - name: quiz_id
         in: path
         required: true
-        type: integer
-      - name: body
-        in: body
-        required: true
         schema:
-          properties:
-            quiz_name:
-              type: string
-            date_of_quiz:
-              type: string
-              format: date
-            time_duration:
-              type: string
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - quiz_name
+              - date_of_quiz
+              - time_duration
+            properties:
+              quiz_name:
+                type: string
+              date_of_quiz:
+                type: string
+                format: date
+              time_duration:
+                type: string
     responses:
       200:
         description: Quiz updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
       400:
         description: Invalid input
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
       404:
         description: Quiz not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     security:
       - Bearer: []
     """
@@ -731,36 +1045,63 @@ def update_quiz(chapter_id, quiz_id):
 @app.route('/api/chapters/<int:chapter_id>/quizzes/<int:quiz_id>', methods=['DELETE'])
 @admin_required
 def delete_quiz(chapter_id, quiz_id):
-    """Delete a quiz from a chapter (admin only)
+    """
+    Delete a quiz from a chapter (Admin only)
     ---
-    tags: 
+    tags:
       - Admin
     parameters:
       - name: chapter_id
         in: path
         required: true
-        type: integer
+        schema:
+          type: integer
       - name: quiz_id
         in: path
         required: true
-        type: integer
+        schema:
+          type: integer
     responses:
       200:
         description: Quiz deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
       404:
         description: Quiz not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     security:
       - Bearer: []
     """
-   
     conn = get_connection()
     cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM quiz WHERE id = ? AND chapter_id = ?", (quiz_id, chapter_id))
+    quiz = cursor.fetchone()
+    if not quiz:
+        conn.close()
+        return jsonify({"error": "Quiz not found"}), 404
 
     cursor.execute("DELETE FROM quiz WHERE id = ? AND chapter_id = ?", (quiz_id, chapter_id))
     conn.commit()
     conn.close()
 
     return jsonify({'message': 'Quiz deleted successfully'}), 200
+
+
+
+
+# -----------------------------------------questions------------------
 
 @app.route('/api/quizzes/<int:quiz_id>/questions', methods=['GET'])
 @admin_required
@@ -774,26 +1115,55 @@ def get_questions_by_quiz(quiz_id):
       - name: quiz_id
         in: path
         required: true
-        type: integer
+        schema:
+          type: integer
+    security:
+      - Bearer: []
     responses:
       200:
         description: List of questions
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                questions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      question_statement:
+                        type: string
+                      option1:
+                        type: string
+                      option2:
+                        type: string
+                      option3:
+                        type: string
+                      option4:
+                        type: string
+                      correct_answer:
+                        type: string
       404:
         description: Quiz not found
-    security:
-      - Bearer: []
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     conn = get_connection()
     cursor = conn.cursor()
-
-    # Check if quiz exists
     cursor.execute("SELECT id FROM quiz WHERE id = ?", (quiz_id,))
     quiz = cursor.fetchone()
     if not quiz:
         conn.close()
         return jsonify({'error': 'Quiz not found'}), 404
 
-    # Fetch questions
     cursor.execute('''
         SELECT id, question_statement, option1, option2, option3, option4, correct_answer
         FROM question WHERE quiz_id = ?
@@ -815,6 +1185,7 @@ def get_questions_by_quiz(quiz_id):
         ]
     }), 200
 
+
 @app.route('/api/quizzes/<int:quiz_id>/questions', methods=['POST'])
 @admin_required
 def add_question(quiz_id):
@@ -827,56 +1198,74 @@ def add_question(quiz_id):
       - name: quiz_id
         in: path
         required: true
-        type: integer
-      - in: body
-        name: body
-        required: true
         schema:
-          type: object
-          required:
-            - question_statement
-            - option1
-            - option2
-            - option3
-            - option4
-            - correct_answer
-          properties:
-            question_statement:
-              type: string
-              example: "What is 2 + 2?"
-            option1:
-              type: string
-              example: "3"
-            option2:
-              type: string
-              example: "4"
-            option3:
-              type: string
-              example: "5"
-            option4:
-              type: string
-              example: "6"
-            correct_answer:
-              type: string
-              example: "4"
-    responses:
-      201:
-        description: Question added
-      400:
-        description: Invalid input or missing data
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - question_statement
+              - option1
+              - option2
+              - option3
+              - option4
+              - correct_answer
+            properties:
+              question_statement:
+                type: string
+              option1:
+                type: string
+              option2:
+                type: string
+              option3:
+                type: string
+              option4:
+                type: string
+              correct_answer:
+                type: string
     security:
       - Bearer: []
+    responses:
+      201:
+        description: Question added successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                question_id:
+                  type: integer
+      400:
+        description: Missing required fields
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+      404:
+        description: Quiz not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     data = request.get_json()
-
     required_fields = ['question_statement', 'option1', 'option2', 'option3', 'option4', 'correct_answer']
     if not data or not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
 
     conn = get_connection()
     cursor = conn.cursor()
-
-    # Optional: verify quiz exists
     cursor.execute("SELECT id FROM quiz WHERE id = ?", (quiz_id,))
     if not cursor.fetchone():
         conn.close()
@@ -894,18 +1283,18 @@ def add_question(quiz_id):
         data['option4'],
         data['correct_answer']
     ))
-
     conn.commit()
     question_id = cursor.lastrowid
     conn.close()
 
     return jsonify({'message': 'Question added successfully', 'question_id': question_id}), 201
 
+
 @app.route('/api/quizzes/<int:quiz_id>/questions/<int:question_id>', methods=['PUT'])
 @admin_required
 def update_question(quiz_id, question_id):
     """
-    Update a specific question in a quiz
+    Update a question in a quiz (Admin only)
     ---
     tags:
       - Admin
@@ -913,35 +1302,53 @@ def update_question(quiz_id, question_id):
       - name: quiz_id
         in: path
         required: true
-        type: integer
+        schema:
+          type: integer
       - name: question_id
         in: path
         required: true
-        type: integer
-      - name: body
-        in: body
-        required: true
         schema:
-          properties:
-            question_statement:
-              type: string
-            option1:
-              type: string
-            option2:
-              type: string
-            option3:
-              type: string
-            option4:
-              type: string
-            correct_answer:
-              type: string
-    responses:
-      200:
-        description: Question updated
-      404:
-        description: Question not found
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              question_statement:
+                type: string
+              option1:
+                type: string
+              option2:
+                type: string
+              option3:
+                type: string
+              option4:
+                type: string
+              correct_answer:
+                type: string
     security:
       - Bearer: []
+    responses:
+      200:
+        description: Question updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      404:
+        description: Question not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     data = request.get_json()
     conn = get_connection()
@@ -949,7 +1356,6 @@ def update_question(quiz_id, question_id):
 
     cursor.execute("SELECT * FROM question WHERE id = ? AND quiz_id = ?", (question_id, quiz_id))
     question = cursor.fetchone()
-
     if not question:
         conn.close()
         return jsonify({"error": "Question not found"}), 404
@@ -970,9 +1376,7 @@ def update_question(quiz_id, question_id):
     ))
     conn.commit()
     conn.close()
-
     return jsonify({"message": "Question updated successfully"}), 200
-
 
 
 @app.route('/api/quizzes/<int:quiz_id>/questions/<int:question_id>', methods=['DELETE'])
@@ -987,22 +1391,37 @@ def delete_question(quiz_id, question_id):
       - name: quiz_id
         in: path
         required: true
-        type: integer
+        schema:
+          type: integer
       - name: question_id
         in: path
         required: true
-        type: integer
-    responses:
-      200:
-        description: Question deleted
-      404:
-        description: Not found
+        schema:
+          type: integer
     security:
       - Bearer: []
+    responses:
+      200:
+        description: Question deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      404:
+        description: Question not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
     """
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute("SELECT id FROM question WHERE id = ? AND quiz_id = ?", (question_id, quiz_id))
     question = cursor.fetchone()
 
@@ -1019,15 +1438,8 @@ def delete_question(quiz_id, question_id):
 
 
 
+#--------------------------------------------------GET ALL USERS ENDPOINT admin---------------------------------------------------
 
-
-
-
-
-
-
-
-#--------------------------------------------------GET ALL USERS ENDPOINT---------------------------------------------------
 @app.route('/api/admin/users', methods=['GET'])
 @admin_required
 def get_all_users():
@@ -1041,19 +1453,34 @@ def get_all_users():
     responses:
       200:
         description: List of users
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                users:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      full_name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
       403:
         description: Admin access required
     """
     conn = get_connection()
     cursor = conn.cursor()
-
-    # Fetch only users with role='user'
     cursor.execute("SELECT * FROM users WHERE role = 'user'")
     users = cursor.fetchall()
     conn.close()
 
     user_list = [user_to_dict(user) for user in users]
-
     return jsonify({"users": user_list}), 200
 
 
@@ -1076,47 +1503,91 @@ def delete_user(user_id):
     responses:
       200:
         description: User deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: User deleted successfully
       404:
         description: User not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: User not found
       403:
         description: Admin access required
     """
     conn = get_connection()
     cursor = conn.cursor()
-
-    # Check if user exists
     cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
     user = cursor.fetchone()
     if not user:
         conn.close()
         return jsonify({"error": "User not found"}), 404
 
-    # Delete user
     cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
     conn.commit()
     conn.close()
-
     return jsonify({"message": "User deleted successfully"}), 200
+
 
 @app.route('/api/admin/summary', methods=['GET'])
 @jwt_required()
 def admin_summary_api():
-    """ Get summary statistics for admin dashboard  
+    """
+    Get summary statistics for admin dashboard
     ---
     tags:
-      - Admin 
+      - Admin
     security:
       - Bearer: []
     responses:
       200:
         description: Summary statistics
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                chart_data:
+                  type: object
+                  properties:
+                    labels:
+                      type: array
+                      items:
+                        type: string
+                    scores:
+                      type: array
+                      items:
+                        type: number
+                    scorers:
+                      type: array
+                      items:
+                        type: string
+                attempt_chart_data:
+                  type: object
+                  properties:
+                    labels:
+                      type: array
+                      items:
+                        type: string
+                    attempts:
+                      type: array
+                      items:
+                        type: integer
       403:
         description: Admin access required
     """
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Query top scorers per subject: get max score per user per subject
     cursor.execute('''
         SELECT sub.name AS subject_name, u.full_name AS top_scorer, MAX(s.score) AS max_score
         FROM score s
@@ -1128,26 +1599,20 @@ def admin_summary_api():
     ''')
     rows = cursor.fetchall()
 
-    # Process to find top scorer per subject (max score)
-    # We'll build a dict: { subject_name: (top_scorer, max_score) }
     top_scorer_dict = {}
     for row in rows:
         subject = row['subject_name']
         scorer = row['top_scorer']
         score = row['max_score']
-
-        # Update if this is the first or higher score for the subject
         if subject not in top_scorer_dict or score > top_scorer_dict[subject]['max_score']:
             top_scorer_dict[subject] = {'top_scorer': scorer, 'max_score': score}
 
-    # Convert to lists for chart.js
     chart_data = {
         'labels': list(top_scorer_dict.keys()),
         'scores': [v['max_score'] for v in top_scorer_dict.values()],
         'scorers': [v['top_scorer'] for v in top_scorer_dict.values()]
     }
 
-    # Query user attempts per subject
     cursor.execute('''
         SELECT sub.name AS subject_name, COUNT(s.id) AS attempt_count
         FROM score s
@@ -1157,327 +1622,17 @@ def admin_summary_api():
         GROUP BY sub.id
     ''')
     attempts = cursor.fetchall()
+    conn.close()
 
     attempt_chart_data = {
         'labels': [row['subject_name'] for row in attempts],
         'attempts': [row['attempt_count'] for row in attempts]
     }
 
-    conn.close()
-
     return jsonify({
         'chart_data': chart_data,
         'attempt_chart_data': attempt_chart_data
-    })
-
-
-@app.route('/api/user/quizzes', methods=['GET'])
-@jwt_required()
-def get_user_quizzes():
-    """
-    Get all quizzes with chapter and subject info for logged-in user
-    ---
-    tags:
-      - User
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: List of quizzes with chapter and subject info
-    """
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-        # Join quiz -> chapters -> subjects to get all names in one query
-        cursor.execute('''
-            SELECT q.id, q.quiz_name, q.date_of_quiz, q.time_duration,
-                   c.name AS chapter, s.name AS subject
-            FROM quiz q
-            JOIN chapters c ON q.chapter_id = c.id
-            JOIN subjects s ON c.subject_id = s.id
-            ORDER BY q.date_of_quiz DESC
-        ''')
-        quizzes = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        return jsonify({"quizzes": quizzes}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
-@app.route('/api/user/quiz/<int:quiz_id>', methods=['GET'])
-@jwt_required()
-def get_quiz_details(quiz_id):
-    """
-    Get details of a specific quiz including questions  and chapter info
-    ---
-    tags:
-      - User
-    parameters:
-      - name: quiz_id
-        in: path
-        required: true
-        type: integer
-    responses:
-      200:
-        description: Quiz details with questions and chapter info
-      404:
-        description: Quiz not found
-      500:
-        description: Internal server error
-    security:
-      - Bearer: []
-    """
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        # Get quiz with chapter and subject info
-        cursor.execute('''
-            SELECT q.id, q.quiz_name, q.date_of_quiz, q.time_duration,
-                   c.id as chapter_id, c.name AS chapter_name, s.id as subject_id, s.name AS subject_name
-            FROM quiz q
-            JOIN chapters c ON q.chapter_id = c.id
-            JOIN subjects s ON c.subject_id = s.id
-            WHERE q.id = ?
-        ''', (quiz_id,))
-        quiz_row = cursor.fetchone()
-        if not quiz_row:
-            return jsonify({"error": "Quiz not found"}), 404
-
-        quiz = {
-            "id": quiz_row["id"],
-            "quiz_name": quiz_row["quiz_name"],
-            "date_of_quiz": quiz_row["date_of_quiz"],
-            "time_duration": quiz_row["time_duration"],
-            "chapter": {
-                "id": quiz_row["chapter_id"],
-                "name": quiz_row["chapter_name"]
-            },
-            "subject": {
-                "id": quiz_row["subject_id"],
-                "name": quiz_row["subject_name"]
-            }
-        }
-
-        # Get questions for this quiz
-        cursor.execute('''
-            SELECT * FROM question WHERE quiz_id = ?
-        ''', (quiz_id,))
-        questions = [question_to_dict(row) for row in cursor.fetchall()]
-        conn.close()
-
-        return jsonify({"quiz": quiz, "questions": questions}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/user/quiz/<int:quiz_id>/submit', methods=['POST'])
-@jwt_required()
-def submit_quiz(quiz_id):
-    """
-    Submit answers for a quiz and calculate score
-    ---
-    tags:
-      - User
-    parameters:
-      - name: quiz_id
-        in: path
-        required: true
-        type: integer 
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties: 
-              answers:
-                type: object
-                additionalProperties:
-                  type: string
-    responses:  
-      200:
-        description: Quiz submitted successfully with score
-      400:
-        description: Answers not provided or invalid input
-      404:
-        description: Quiz or questions not found
-      500:
-        description: Internal server error
-    security:   
-      - Bearer: []
-    """
-    try:
-        # Get user email from JWT token
-        user_email = get_jwt_identity()
-
-        data = request.get_json()
-        if not data or "answers" not in data:
-            return jsonify({"error": "Answers not provided"}), 400
-
-        answers = data["answers"]  # Dict: { question_id: selected_option, ... }
-
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        # Fetch correct answers for the quiz questions
-        cursor.execute('SELECT id, correct_answer FROM question WHERE quiz_id = ?', (quiz_id,))
-        questions = cursor.fetchall()
-
-        if not questions:
-            return jsonify({"error": "Quiz or questions not found"}), 404
-
-        total_questions = len(questions)
-        correct_count = 0
-
-        for q in questions:
-            qid = q["id"]
-            correct_answer = q["correct_answer"]
-            user_answer = answers.get(str(qid))  # keys as string since JSON keys are strings
-            if user_answer and user_answer == correct_answer:
-                correct_count += 1
-
-        score = (correct_count / total_questions) * 100  # score in percentage
-
-        # Save the score with current date
-        date_attempt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cursor.execute('''
-            INSERT INTO score (user_email, quiz_id, date_attempt, score)
-            VALUES (?, ?, ?, ?)
-        ''', (user_email, quiz_id, date_attempt, score))
-        conn.commit()
-        conn.close()
-
-        return jsonify({"message": "Quiz submitted", "score": score}), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# return user score list
-@app.route('/api/user/scores', methods=['GET'])
-@jwt_required()
-def get_user_scores():
-    """
-    Get all scores for the logged-in user
-    ---
-    tags:
-      - User
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: List of scores with quiz and chapter info
-    """
-    try:
-        user_email = get_jwt_identity()
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        # Join score -> quiz -> chapters -> subjects to get all names in one query
-        cursor.execute('''
-            SELECT s.id, s.score, s.date_attempt, q.quiz_name, c.name AS chapter, sub.name AS subject
-            FROM score s
-            JOIN quiz q ON s.quiz_id = q.id
-            JOIN chapters c ON q.chapter_id = c.id
-            JOIN subjects sub ON c.subject_id = sub.id
-            WHERE s.user_email = ?
-            ORDER BY s.date_attempt DESC
-        ''', (user_email,))
-        scores = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-
-        return jsonify({"scores": scores}), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/user/summary', methods=['GET'])
-@jwt_required()
-def get_user_summary():
-    user_email = get_jwt_identity()
-
-    # Dummy data — replace with actual DB queries filtering by user_email
-    subject_data = {
-        "labels": ["Math", "Science", "History", "English"],
-        "quizzes": [10, 15, 7, 12]
-    }
-
-    # Generate next 6 months starting this month
-    now = datetime.now()
-    months = []
-    for i in range(6):
-        month_dt = now.replace(day=1) + timedelta(days=calendar.monthrange(now.year, now.month)[1] * i)
-        months.append(month_dt.strftime('%b'))
-
-    # Dummy attempts for these months
-    attempts = [50, 60, 45, 70, 65, 80]
-
-    month_data = {
-        "labels": months,
-        "attempts": attempts
-    }
-
-    return jsonify({
-        "subject_chart_data": subject_data,
-        "month_chart_data": month_data
-    })        
-
-
-from flask import jsonify,session
-from collections import Counter
-from sqlalchemy import extract
-
-@app.route('/api/quizzes_charts', methods=['GET'])
-@jwt_required()
-def api_quizzes_charts():
-    user_email = get_jwt_identity()
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    # Fetch all quizzes with their chapters and subjects
-    cursor.execute("""
-        SELECT q.id, q.quiz_name, q.date_of_quiz, c.name AS chapter, s.name AS subject
-        FROM quiz q
-        JOIN chapters c ON q.chapter_id = c.id
-        JOIN subjects s ON c.subject_id = s.id
-    """)
-    quizzes = cursor.fetchall()
-
-    # Count quizzes by subject
-    subject_counts = Counter(row["subject"] for row in quizzes)
-    subject_chart_data = {
-        "labels": list(subject_counts.keys()),
-        "quizzes": list(subject_counts.values()),
-    }
-
-    # Fetch quiz attempts (scores) by this user, extract month from date_attempt (assumed 'YYYY-MM-DD')
-    cursor.execute("""
-        SELECT date_attempt FROM score WHERE user_email = ?
-    """, (user_email,))
-    attempts = cursor.fetchall()
-
-    # Extract months from date_attempt string (format 'YYYY-MM-DD')
-    months = []
-    for row in attempts:
-        date_str = row["date_attempt"]
-        try:
-            month = int(date_str.split('-')[1])  # get month part as int
-            months.append(month)
-        except Exception:
-            continue
-
-    month_counts = Counter(months)
-    month_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-    month_chart_data = {
-        "labels": [month_labels[m - 1] for m in month_counts.keys()],
-        "attempts": list(month_counts.values()),
-    }
-
-    conn.close()
-
-    return jsonify(subject_chart_data=subject_chart_data, month_chart_data=month_chart_data)
-
+    }), 200
 
 @app.route('/api/search', methods=['GET'])
 @admin_required
@@ -1539,6 +1694,428 @@ def api_search():
     }
 
     return jsonify(results), 200
+
+
+# -------------------------------------------users dashboard-----------------------------
+@app.route('/api/user/quizzes', methods=['GET'])
+@jwt_required()
+def get_user_quizzes():
+    """
+    Get all quizzes with chapter and subject info for logged-in user
+    ---
+    tags:
+      - User
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of quizzes with chapter and subject info
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quizzes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      quiz_name:
+                        type: string
+                      date_of_quiz:
+                        type: string
+                        format: date
+                      time_duration:
+                        type: string
+                      chapter:
+                        type: string
+                      subject:
+                        type: string
+      500:
+        description: Internal server error
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT q.id, q.quiz_name, q.date_of_quiz, q.time_duration,
+                   c.name AS chapter, s.name AS subject
+            FROM quiz q
+            JOIN chapters c ON q.chapter_id = c.id
+            JOIN subjects s ON c.subject_id = s.id
+            ORDER BY q.date_of_quiz DESC
+        ''')
+        quizzes = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jsonify({"quizzes": quizzes}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/user/quiz/<int:quiz_id>', methods=['GET'])
+@jwt_required()
+def get_quiz_details(quiz_id):
+    """
+    Get details of a specific quiz including questions and chapter info
+    ---
+    tags:
+      - User
+    parameters:
+      - name: quiz_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Quiz details with questions and chapter info
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quiz:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    quiz_name:
+                      type: string
+                    date_of_quiz:
+                      type: string
+                      format: date
+                    time_duration:
+                      type: string
+                    chapter:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                    subject:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                questions:
+                  type: array
+                  items:
+                    type: object
+      404:
+        description: Quiz not found
+      500:
+        description: Internal server error
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT q.id, q.quiz_name, q.date_of_quiz, q.time_duration,
+                   c.id as chapter_id, c.name AS chapter_name, s.id as subject_id, s.name AS subject_name
+            FROM quiz q
+            JOIN chapters c ON q.chapter_id = c.id
+            JOIN subjects s ON c.subject_id = s.id
+            WHERE q.id = ?
+        ''', (quiz_id,))
+        quiz_row = cursor.fetchone()
+        if not quiz_row:
+            return jsonify({"error": "Quiz not found"}), 404
+
+        quiz = {
+            "id": quiz_row["id"],
+            "quiz_name": quiz_row["quiz_name"],
+            "date_of_quiz": quiz_row["date_of_quiz"],
+            "time_duration": quiz_row["time_duration"],
+            "chapter": {
+                "id": quiz_row["chapter_id"],
+                "name": quiz_row["chapter_name"]
+            },
+            "subject": {
+                "id": quiz_row["subject_id"],
+                "name": quiz_row["subject_name"]
+            }
+        }
+
+        cursor.execute('SELECT * FROM question WHERE quiz_id = ?', (quiz_id,))
+        questions = [question_to_dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        return jsonify({"quiz": quiz, "questions": questions}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/user/quiz/<int:quiz_id>/submit', methods=['POST'])
+@jwt_required()
+def submit_quiz(quiz_id):
+    """
+    Submit answers for a quiz and calculate score
+    ---
+    tags:
+      - User
+    parameters:
+      - name: quiz_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID of the quiz
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              answers:
+                type: object
+                additionalProperties:
+                  type: string
+            example:
+              answers:
+                "1": "option1"
+                "2": "option3"
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Quiz submitted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                score:
+                  type: number
+              example:
+                message: "Quiz submitted"
+                score: 80.0
+      400:
+        description: Answers not provided or invalid input
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+              example:
+                error: "Answers not provided"
+      404:
+        description: Quiz or questions not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+              example:
+                error: "Quiz or questions not found"
+      500:
+        description: Internal server error
+    """
+    try:
+        user_email = get_jwt_identity()
+        data = request.get_json()
+
+        if not data or "answers" not in data:
+            return jsonify({"error": "Answers not provided"}), 400
+
+        answers = data["answers"]
+
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, correct_answer FROM question WHERE quiz_id = ?', (quiz_id,))
+        questions = cursor.fetchall()
+
+        if not questions:
+            return jsonify({"error": "Quiz or questions not found"}), 404
+
+        total_questions = len(questions)
+        correct_count = sum(1 for q in questions if answers.get(str(q["id"])) == q["correct_answer"])
+
+        score = (correct_count / total_questions) * 100
+        date_attempt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        cursor.execute('''
+            INSERT INTO score (user_email, quiz_id, date_attempt, score)
+            VALUES (?, ?, ?, ?)
+        ''', (user_email, quiz_id, date_attempt, score))
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": "Quiz submitted", "score": score}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/user/scores', methods=['GET'])
+@jwt_required()
+def get_user_scores():
+    """
+    Get all scores for the logged-in user
+    ---
+    tags:
+      - User
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of scores with quiz and chapter info
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scores:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      score:
+                        type: number
+                        format: float
+                      date_attempt:
+                        type: string
+                        format: date-time
+                      quiz_name:
+                        type: string
+                      chapter:
+                        type: string
+                      subject:
+                        type: string
+      500:
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Database connection failed"
+    """
+    try:
+        user_email = get_jwt_identity()
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT s.id, s.score, s.date_attempt, q.quiz_name, c.name AS chapter, sub.name AS subject
+            FROM score s
+            JOIN quiz q ON s.quiz_id = q.id
+            JOIN chapters c ON q.chapter_id = c.id
+            JOIN subjects sub ON c.subject_id = sub.id
+            WHERE s.user_email = ?
+            ORDER BY s.date_attempt DESC
+        ''', (user_email,))
+        scores = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        return jsonify({"scores": scores}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/quizzes_charts', methods=['GET'])
+@jwt_required()
+def api_quizzes_charts():
+    """
+    Get charts data for quizzes by subject and user attempts by month
+    ---
+    tags:
+      - User
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Chart data for quizzes by subject and user attempts by month
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject_chart_data:
+                  type: object
+                  properties:
+                    labels:
+                      type: array
+                      items:
+                        type: string
+                    quizzes:
+                      type: array
+                      items:
+                        type: integer
+                month_chart_data:
+                  type: object
+                  properties:
+                    labels:
+                      type: array
+                      items:
+                        type: string
+                    attempts:
+                      type: array
+                      items:
+                        type: integer
+
+    """
+    try:
+        user_email = get_jwt_identity()
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Subject-wise quiz count
+        cursor.execute("""
+            SELECT s.name AS subject
+            FROM quiz q
+            JOIN chapters c ON q.chapter_id = c.id
+            JOIN subjects s ON c.subject_id = s.id
+        """)
+        quizzes = cursor.fetchall()
+        subject_counts = Counter(row["subject"] for row in quizzes)
+        subject_chart_data = {
+            "labels": list(subject_counts.keys()),
+            "quizzes": list(subject_counts.values()),
+        }
+
+        # Month-wise attempt count
+        cursor.execute("SELECT date_attempt FROM score WHERE user_email = ?", (user_email,))
+        attempts = cursor.fetchall()
+
+        month_counts = Counter()
+        for row in attempts:
+            try:
+                dt = datetime.strptime(row["date_attempt"], "%Y-%m-%d %H:%M:%S")
+                month_counts[dt.month] += 1
+            except:
+                continue
+
+        month_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+        month_chart_data = {
+            "labels": [month_labels[m - 1] for m in sorted(month_counts)],
+            "attempts": [month_counts[m] for m in sorted(month_counts)],
+        }
+
+        conn.close()
+        return jsonify(subject_chart_data=subject_chart_data, month_chart_data=month_chart_data), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+
 
 
 if __name__ == '__main__':
