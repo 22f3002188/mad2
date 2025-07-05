@@ -8,11 +8,14 @@ from flask_cors import CORS
 from flasgger import Swagger
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
+from celery_app import make_celery
 from models import init_db, create_admin, get_connection, question_to_dict, user_to_dict, subject_to_dict, chapter_to_dict, quiz_to_dict, score_to_dict
 from flask_jwt_extended import (JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt)
 
 # Initialize Flask app
 app = Flask(__name__)
+celery = make_celery(app)
+import tasks 
 
 
 
