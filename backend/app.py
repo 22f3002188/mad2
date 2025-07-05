@@ -80,51 +80,54 @@ def signup():
     ---
     tags:
       - Registration
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - email
-              - password
-              - full_name
-              - qualification
-              - dob
-            properties:
-              email:
-                type: string
-              password:
-                type: string
-              full_name:
-                type: string
-              qualification:
-                type: string
-              dob:
-                type: string
-                format: date
+    consumes:
+      - application/json
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - password
+            - full_name
+            - qualification
+            - dob
+          properties:
+            email:
+              type: string
+              example: "user@example.com"
+            password:
+              type: string
+              example: "password123"
+            full_name:
+              type: string
+              example: "John Doe"
+            qualification:
+              type: string
+              example: "B.Tech"
+            dob:
+              type: string
+              format: date
+              example: "2000-01-01"
     responses:
       201:
         description: User registered
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                user_id:
-                  type: integer
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            user_id:
+              type: integer
       400:
         description: Email already exists
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
     """
     data = request.get_json()
     email = data.get('email')
@@ -163,52 +166,52 @@ def login():
     ---
     tags:
       - Registration
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - email
-              - password
-            properties:
-              email:
-                type: string
-              password:
-                type: string
+    consumes:
+      - application/json
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              example: user@example.com
+            password:
+              type: string
+              example: mypassword123
     responses:
       200:
         description: Login successful
-        content:
-          application/json:
-            schema:
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            access_token:
+              type: string
+            user:
               type: object
               properties:
-                message:
+                id:
+                  type: integer
+                full_name:
                   type: string
-                access_token:
+                email:
                   type: string
-                user:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                    full_name:
-                      type: string
-                    email:
-                      type: string
-                    role:
-                      type: string
+                role:
+                  type: string
       401:
         description: Invalid credentials
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
     """
     data = request.get_json()
     email = data.get('email')
@@ -258,7 +261,6 @@ def login():
         conn.close()
         return jsonify({"error": "Invalid email or password"}), 401
 
-
 @app.route('/api/logout', methods=['POST'])
 @jwt_required()
 def logout():
@@ -267,18 +269,19 @@ def logout():
     ---
     tags:
       - Registration
+    consumes:
+      - application/json
     security:
       - Bearer: []
     responses:
       200:
         description: Logout successful
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Logout successful"
     """
     jti = get_jwt()['jti']
     conn = get_connection()
@@ -1867,7 +1870,6 @@ def get_quiz_details(quiz_id):
         return jsonify({"quiz": quiz, "questions": questions}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route('/api/user/quiz/<int:quiz_id>/submit', methods=['POST'])
 @jwt_required()
 def submit_quiz(quiz_id):
@@ -1876,67 +1878,60 @@ def submit_quiz(quiz_id):
     ---
     tags:
       - User
+    consumes:
+      - application/json
     parameters:
       - name: quiz_id
         in: path
         required: true
-        schema:
-          type: integer
+        type: integer
         description: ID of the quiz
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              answers:
-                type: object
-                additionalProperties:
-                  type: string
-            example:
-              answers:
-                "1": "option1"
-                "2": "option3"
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            answers:
+              type: object
+              additionalProperties:
+                type: string
+          example:
+            answers:
+              "1": "option1"
     security:
       - Bearer: []
     responses:
       200:
         description: Quiz submitted successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                score:
-                  type: number
-              example:
-                message: "Quiz submitted"
-                score: 80.0
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            score:
+              type: number
+          example:
+            message: "Quiz submitted"
+            score: 80.0
       400:
         description: Answers not provided or invalid input
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
-              example:
-                error: "Answers not provided"
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+          example:
+            error: "Answers not provided"
       404:
         description: Quiz or questions not found
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
-              example:
-                error: "Quiz or questions not found"
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+          example:
+            error: "Quiz or questions not found"
       500:
         description: Internal server error
     """
@@ -1973,6 +1968,7 @@ def submit_quiz(quiz_id):
         return jsonify({"message": "Quiz submitted", "score": score}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/user/scores', methods=['GET'])
 @jwt_required()
