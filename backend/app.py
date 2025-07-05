@@ -15,7 +15,17 @@ from flask_jwt_extended import (JWTManager, create_access_token, jwt_required, g
 # Initialize Flask app
 app = Flask(__name__)
 celery = make_celery(app)
-import tasks 
+
+from flask_caching import Cache
+
+# Redis cache config
+app.config['CACHE_TYPE'] = 'RedisCache'
+app.config['CACHE_REDIS_HOST'] = 'localhost'  # or 'redis' if using docker-compose
+app.config['CACHE_REDIS_PORT'] = 6379
+app.config['CACHE_REDIS_DB'] = 0
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 minutes
+
+cache = Cache(app)
 
 
 app.config['SWAGGER'] = {
@@ -346,6 +356,7 @@ def add_subject():
             (name, description)
         )
         conn.commit()
+        cache.delete("all_subjects") 
         return jsonify({'message': 'Subject added successfully'}), 200
 
     except sqlite3.IntegrityError:
@@ -356,8 +367,10 @@ def add_subject():
 
 
 @app.route('/api/get_subjects', methods=['GET'])
+@cache.cached(timeout=300, key_prefix="all_subjects")
 @admin_required
 def get_subjects():
+    print("/api/get_subjects route called")
     """
     Get list of all subjects (Admin only)
     ---
@@ -395,6 +408,7 @@ def get_subjects():
                   type: string
     """
     try:
+        print("Cache MISS — fetching subjects from DB")
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM subjects')
@@ -402,11 +416,13 @@ def get_subjects():
         conn.close()
 
         subject_list = [subject_to_dict(subject) for subject in subjects]
+
         return jsonify({"subjects": subject_list}), 200
 
     except Exception as e:
         print("Error fetching subjects:", e)
         return jsonify({"error": "Internal server error"}), 500
+
 
 
 @app.route('/api/subjects/<int:subject_id>', methods=['PUT'])
@@ -474,6 +490,7 @@ def update_subject(subject_id):
     )
     conn.commit()
     conn.close()
+    cache.delete("all_subjects") 
 
     return jsonify({"message": "Subject updated successfully"}), 200
 
@@ -524,6 +541,7 @@ def delete_subject(subject_id):
     cursor.execute("DELETE FROM subjects WHERE id = ?", (subject_id,))
     conn.commit()
     conn.close()
+    cache.delete("all_subjects") 
     return jsonify({"message": "Subject deleted successfully"}), 200
 
 
