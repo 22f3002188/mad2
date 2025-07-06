@@ -1,6 +1,5 @@
 <template>
   <div class="edit-chapter-page">
-    <navbar />
     <div class="container my-5">
       <div class="card shadow border-0 mx-auto" style="max-width: 600px">
         <div class="card-header bg-warning text-white text-center fs-4 fw-bold">
@@ -30,11 +29,9 @@
 </template>
 
 <script>
-import navbar from './navbar.vue';
 import { updateChapter, getChaptersBySubject } from '@/services/authService';
 
 export default {
-  components: { navbar },
   data() {
     return {
       name: '',
