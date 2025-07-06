@@ -8,15 +8,22 @@ from flask_cors import CORS
 from flasgger import Swagger
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
+from flask_mail import Mail
 from celery_app import make_celery
 from models import init_db, create_admin, get_connection, question_to_dict, user_to_dict, subject_to_dict, chapter_to_dict, quiz_to_dict, score_to_dict
 from flask_jwt_extended import (JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt)
+from flask_caching import Cache
 
 # Initialize Flask app
 app = Flask(__name__)
 celery = make_celery(app)
 
-from flask_caching import Cache
+# === Mail Config ===
+app.config['MAIL_SERVER'] = 'localhost'
+app.config['MAIL_PORT'] = 1025
+app.config['MAIL_DEFAULT_SENDER'] = 'admin@gmail.com'
+app.config['MAIL_SUPPRESS_SEND'] = False
+mail = Mail(app)
 
 # Redis cache config
 app.config['CACHE_TYPE'] = 'RedisCache'
