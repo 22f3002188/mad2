@@ -2134,6 +2134,31 @@ def api_quizzes_charts():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# app.py
+
+@app.route('/api/export_csv', methods=['POST'])
+@jwt_required()
+def trigger_csv_export():
+    """
+    Trigger quiz CSV export (user)
+    ---
+    tags:
+      - User
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Export triggered
+      401:
+        description: Unauthorized
+    """
+    user_email = get_jwt_identity()
+
+    # Start background task
+    from tasks import export_user_csv_and_email
+    export_user_csv_and_email.delay(user_email)
+
+    return jsonify({"message": "CSV export started. You'll receive an email once ready."}), 200
 
 
 

@@ -3,6 +3,8 @@ from celery import current_app as celery
 from flask_mail import Mail, Message
 from models import get_connection
 from app import app  # ✅ fix for RuntimeError
+from io import StringIO  # <-- Add this import
+import csv  # <-- Add this import for CSV operations
 
 mail = Mail(app)
 
@@ -89,4 +91,58 @@ def send_monthly_report():
             )
             mail.send(msg)
 
+        conn.close()
+
+# tasks.py
+@celery.task(name='tasks.export_user_csv_and_email')
+def export_user_csv_and_email(user_email):
+    with app.app_context():  # ✅ FIXED
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Get user details
+        cursor.execute("SELECT full_name FROM users WHERE email = ?", (user_email,))
+        row = cursor.fetchone()
+        if not row:
+            print(f"No user found for {user_email}")
+            return
+
+        full_name = row['full_name']
+
+        # Get quiz data
+        cursor.execute("""
+            SELECT q.id AS quiz_id, q.chapter_id, s.date_attempt, s.score
+            FROM score s
+            JOIN quiz q ON s.quiz_id = q.id
+            WHERE s.user_email = ?
+        """, (user_email,))
+        rows = cursor.fetchall()
+
+        if not rows:
+            print(f"No quiz data found for {user_email}")
+            return
+
+        # Generate CSV
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['quiz_id', 'chapter_id', 'date_of_quiz', 'score'])
+
+        for row in rows:
+            writer.writerow([
+                row['quiz_id'], row['chapter_id'], row['date_attempt'],
+                row['score'] or ''
+            ])
+
+        csv_data = output.getvalue()
+        output.close()
+
+        # Send via email
+        msg = Message(
+            subject="📥 Your Quiz Export",
+            recipients=[user_email],
+            body=f"Hi {full_name},\n\nAttached is your quiz export CSV from Quiz Nation.",
+        )
+        msg.attach("quiz_export.csv", "text/csv", csv_data)
+        mail.send(msg)
+        print(f"✅ CSV sent to {user_email}")
         conn.close()

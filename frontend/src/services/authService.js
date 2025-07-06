@@ -109,5 +109,8 @@ export async function searchAPI(query) {
   return await api.get(`/api/search?query=${encodeURIComponent(query)}`, true); // true = include auth token header
 }
 
+export async function exportUserCSV() {
+  return await api.post('/api/export_csv', {}, true); // true = send JWT
+}
 
 

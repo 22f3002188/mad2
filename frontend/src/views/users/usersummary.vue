@@ -4,6 +4,7 @@
 
     <div class="container mt-4 text-center">
       <h3>Quiz Statistics</h3>
+
       <div class="row justify-content-center mt-4">
         <div class="col-md-6">
           <h5>Subject-wise Quizzes</h5>
@@ -11,12 +12,21 @@
             <canvas ref="subjectChart"></canvas>
           </div>
         </div>
+
         <div class="col-md-6">
           <h5>Month-wise Quiz Attempts</h5>
           <div class="chart-container">
             <canvas ref="monthChart"></canvas>
           </div>
         </div>
+      </div>
+
+      <!-- CSV Export Button -->
+      <div class="mt-5">
+        <button class="btn btn-primary" @click="exportCSV" :disabled="isExporting">
+          {{ isExporting ? 'Exporting...' : '📤 Export My Quiz CSV' }}
+        </button>
+        <p v-if="exportMessage" class="mt-2">{{ exportMessage }}</p>
       </div>
     </div>
   </div>
@@ -25,8 +35,8 @@
 <script>
 import { ref, onMounted } from "vue";
 import Chart from "chart.js/auto";
-import navbar from "./navbar.vue";  // Adjust the path as needed
-import { getUserSummary } from "@/services/authService";
+import navbar from "./navbar.vue";
+import { getUserSummary, exportUserCSV } from "@/services/authService";
 
 export default {
   name: "UserSummary",
@@ -36,6 +46,22 @@ export default {
     const monthChart = ref(null);
     let subjectChartInstance = null;
     let monthChartInstance = null;
+
+    const isExporting = ref(false);
+    const exportMessage = ref("");
+
+    const exportCSV = async () => {
+      try {
+        isExporting.value = true;
+        exportMessage.value = "";
+        const res = await exportUserCSV();
+        exportMessage.value = res.message || "CSV export started. Check your email soon!";
+      } catch (err) {
+        exportMessage.value = "❌ Failed to export CSV: " + err.message;
+      } finally {
+        isExporting.value = false;
+      }
+    };
 
     const fetchData = async () => {
       try {
@@ -103,7 +129,13 @@ export default {
       fetchData();
     });
 
-    return { subjectChart, monthChart };
+    return {
+      subjectChart,
+      monthChart,
+      exportCSV,
+      isExporting,
+      exportMessage,
+    };
   },
 };
 </script>
@@ -112,5 +144,10 @@ export default {
 .chart-container {
   width: 100%;
   height: 400px;
+}
+
+button.btn.btn-primary {
+  font-size: 1rem;
+  padding: 10px 20px;
 }
 </style>
