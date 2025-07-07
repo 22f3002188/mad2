@@ -1,8 +1,6 @@
 import hashlib
 import sqlite3
-import calendar
 from typing import Counter
-from flask import abort
 from functools import wraps
 from flask_cors import CORS
 from flasgger import Swagger
