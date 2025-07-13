@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <navbar /> 
+  <div class="light-yellow-bg">
+    <navbar />
 
     <div class="container mt-5">
       <h2 class="text-center">All Quizzes</h2>
@@ -66,14 +66,14 @@ export default {
   },
   methods: {
     async fetchQuizzes() {
-    try {
-      const response = await api.get('/api/user/quizzes', true);
-      console.log('Quiz API response:', response);
-      this.quizzes = response.quizzes;
-    } catch (error) {
-      console.error('Failed to load quizzes:', error.message);
-    }
-  },
+      try {
+        const response = await api.get('/api/user/quizzes', true);
+        console.log('Quiz API response:', response);
+        this.quizzes = response.quizzes;
+      } catch (error) {
+        console.error('Failed to load quizzes:', error.message);
+      }
+    },
 
     formatDate(dateStr) {
       const date = new Date(dateStr);
@@ -88,15 +88,18 @@ export default {
       return this.formatDate(dateStr) > today;
     },
     startQuiz(quizId) {
-    console.log('Starting quiz with id:', quizId);
-    this.$router.push({ name: 'attemptquiz', params: { quizId } });
-  },
-
+      console.log('Starting quiz with id:', quizId);
+      this.$router.push({ name: 'attemptquiz', params: { quizId } });
+    },
   },
 };
 </script>
 
 <style scoped>
+.light-yellow-bg {
+  background-color: #fff9c4; /* light yellow */
+  min-height: 100vh;
+}
 .table {
   font-size: 0.95rem;
 }

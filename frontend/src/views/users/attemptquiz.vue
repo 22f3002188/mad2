@@ -1,64 +1,66 @@
 <template>
-  <div class="container mt-5">
-    <h2 class="text-center">Quiz Attempt - {{ quiz.quiz_name || 'Loading...' }}</h2>
+  <div class="light-yellow-bg">
+    <div class="container mt-5">
+      <h2 class="text-center">Quiz Attempt - {{ quiz.quiz_name || 'Loading...' }}</h2>
 
-    <h5 class="text-center text-muted" v-if="quiz.chapter">
-      Subject: {{ quiz.chapter.subject_name }} | Chapter: {{ quiz.chapter.name }}
-    </h5>
+      <h5 class="text-center text-muted" v-if="quiz.chapter">
+        Subject: {{ quiz.chapter.subject_name }} | Chapter: {{ quiz.chapter.name }}
+      </h5>
 
-    <h6 class="text-center text-primary" v-if="quiz.date_of_quiz">
-      Date of Quiz: {{ formatDate(quiz.date_of_quiz) }}
-    </h6>
+      <h6 class="text-center text-primary" v-if="quiz.date_of_quiz">
+        Date of Quiz: {{ formatDate(quiz.date_of_quiz) }}
+      </h6>
 
-    <!-- Timer -->
-    <div v-if="timeLeft !== null && !submitted" class="text-center my-3">
-      <h4>Time Left: {{ formattedTimeLeft }}</h4>
-    </div>
+      <!-- Timer -->
+      <div v-if="timeLeft !== null && !submitted" class="text-center my-3">
+        <h4>Time Left: {{ formattedTimeLeft }}</h4>
+      </div>
 
-    <!-- Quiz Form -->
-    <form v-if="questions.length > 0 && !submitted" @submit.prevent="submitQuiz">
-      <div
-        v-for="(question, index) in questions"
-        :key="question.id"
-        class="card mt-3"
-      >
-        <div class="card-body">
-          <h5 class="card-title">Q{{ index + 1 }}: {{ question.question_statement }}</h5>
-          <div
-            class="form-check"
-            v-for="opt in questionOptions(question)"
-            :key="opt"
-          >
-            <input
-              class="form-check-input"
-              type="radio"
-              :name="'q' + question.id"
-              :value="opt"
-              v-model="answers[question.id]"
-              required
-            />
-            <label class="form-check-label">{{ opt }}</label>
+      <!-- Quiz Form -->
+      <form v-if="questions.length > 0 && !submitted" @submit.prevent="submitQuiz">
+        <div
+          v-for="(question, index) in questions"
+          :key="question.id"
+          class="card mt-3"
+        >
+          <div class="card-body">
+            <h5 class="card-title">Q{{ index + 1 }}: {{ question.question_statement }}</h5>
+            <div
+              class="form-check"
+              v-for="opt in questionOptions(question)"
+              :key="opt"
+            >
+              <input
+                class="form-check-input"
+                type="radio"
+                :name="'q' + question.id"
+                :value="opt"
+                v-model="answers[question.id]"
+                required
+              />
+              <label class="form-check-label">{{ opt }}</label>
+            </div>
           </div>
         </div>
+
+        <div class="text-center mt-4">
+          <button type="submit" class="btn btn-success">Submit Quiz</button>
+        </div>
+      </form>
+
+      <!-- Loading -->
+      <div v-else-if="!submitted" class="text-center mt-4">
+        Loading questions...
       </div>
 
-      <div class="text-center mt-4">
-        <button type="submit" class="btn btn-success">Submit Quiz</button>
+      <!-- Quiz Result -->
+      <div v-if="submitted" class="text-center mt-4">
+        <h3>
+          Your Score: {{ computedCorrectAnswers }} / {{ totalQuestions }} ({{ score }}%)
+        </h3>
+        <p>{{ resultMessage }}</p>
+        <button class="btn btn-primary" @click="goToDashboard">Back to Dashboard</button>
       </div>
-    </form>
-
-    <!-- Loading -->
-    <div v-else-if="!submitted" class="text-center mt-4">
-      Loading questions...
-    </div>
-
-    <!-- Quiz Result -->
-    <div v-if="submitted" class="text-center mt-4">
-      <h3>
-        Your Score: {{ computedCorrectAnswers }} / {{ totalQuestions }} ({{ score }}%)
-      </h3>
-      <p>{{ resultMessage }}</p>
-      <button class="btn btn-primary" @click="goToDashboard">Back to Dashboard</button>
     </div>
   </div>
 </template>
@@ -88,7 +90,9 @@ export default {
       if (timeLeft.value === null) return '';
       const minutes = Math.floor(timeLeft.value / 60);
       const seconds = timeLeft.value % 60;
-      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      return `${minutes.toString().padStart(2, '0')}:${seconds
+        .toString()
+        .padStart(2, '0')}`;
     });
 
     const computedCorrectAnswers = computed(() => {
@@ -106,9 +110,12 @@ export default {
     };
 
     const questionOptions = (question) => {
-      return [question.option1, question.option2, question.option3, question.option4].filter(
-        (opt) => opt && opt.trim() !== ''
-      );
+      return [
+        question.option1,
+        question.option2,
+        question.option3,
+        question.option4,
+      ].filter((opt) => opt && opt.trim() !== '');
     };
 
     const parseDurationToSeconds = (durationStr) => {
@@ -119,7 +126,8 @@ export default {
       }
       const parts = durationStr.split(':').map(Number);
       if (parts.length === 2) return parts[0] * 60 + parts[1];
-      if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      if (parts.length === 3)
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
       return 900;
     };
 
@@ -154,10 +162,15 @@ export default {
       try {
         const quizId = route.params.quizId;
         const payload = { answers };
-        const response = await api.post(`/api/user/quiz/${quizId}/submit`, payload, true);
+        const response = await api.post(
+          `/api/user/quiz/${quizId}/submit`,
+          payload,
+          true
+        );
         score.value = response.score;
         totalQuestions.value = response.total || totalQuestions.value;
-        resultMessage.value = response.message || 'Quiz submitted successfully!';
+        resultMessage.value =
+          response.message || 'Quiz submitted successfully!';
         submitted.value = true;
       } catch (error) {
         console.error('Failed to submit quiz:', error.message);
@@ -166,7 +179,7 @@ export default {
     };
 
     const goToDashboard = () => {
-      router.push({ name: 'userdashboard' }); // matched with your router
+      router.push({ name: 'userdashboard' });
     };
 
     onMounted(() => {
@@ -198,6 +211,12 @@ export default {
 </script>
 
 <style scoped>
+.light-yellow-bg {
+  background-color: #fff9c4;
+  min-height: 100vh;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
 .card-title {
   font-weight: bold;
 }

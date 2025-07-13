@@ -1,11 +1,11 @@
 <template>
-  <div class="edit-subject-page bg-light d-flex justify-content-center align-items-center min-vh-100">
+  <div class="edit-subject-page d-flex justify-content-center align-items-center min-vh-100">
     <div class="container">
-      <div class="card shadow-lg border-0 p-4">
+      <div class="card shadow-lg border-0 p-4 mx-auto" style="max-width: 600px;">
         <div class="card-header bg-warning text-white text-center rounded-top">
-          <h3>Edit Subject</h3>
+          <h3 class="mb-0">Edit Subject</h3>
         </div>
-        <form @submit.prevent="handleSubmit" class="card-body bg-white">
+        <form @submit.prevent="handleSubmit" class="card-body">
           <div class="mb-3">
             <label class="form-label fw-bold">Subject Name</label>
             <input v-model="name" type="text" class="form-control" required />
@@ -15,8 +15,8 @@
             <textarea v-model="description" rows="4" class="form-control" required></textarea>
           </div>
           <div class="d-flex justify-content-center gap-3">
-            <button type="submit" class="btn btn-warning">Save</button>
-            <button class="btn btn-secondary" @click="$router.push('/admin/admindashboard')">Cancel</button>
+            <button type="submit" class="btn btn-warning px-4">Save</button>
+            <button class="btn btn-secondary px-4" @click="$router.push('/admin/admindashboard')">Cancel</button>
           </div>
         </form>
       </div>
@@ -30,9 +30,9 @@ import { updateSubject, getSubjects } from '@/services/authService';
 export default {
   data() {
     return {
+      id: this.$route.params.id,
       name: '',
       description: '',
-      id: this.$route.params.id,
     };
   },
   async mounted() {
@@ -50,11 +50,10 @@ export default {
   methods: {
     async handleSubmit() {
       try {
-        const payload = {
-          name: this.name,
-          description: this.description,
-        };
-        await updateSubject(this.id, payload);
+        await updateSubject(this.id, {
+          name: this.name.trim(),
+          description: this.description.trim(),
+        });
         this.$router.push('/admin/admindashboard');
       } catch (err) {
         console.error('Update failed:', err.message);
@@ -65,50 +64,16 @@ export default {
 </script>
 
 <style scoped>
-.add-subject-page {
-  background-color: #ffe6f0; /* Light pink background */
-  padding: 40px 0;
+.edit-subject-page {
+  background-color: #ffe6f0; /* light pink page background */
   min-height: 100vh;
+  padding: 40px 0;
 }
 
-.card {
-  background-color: #fff0f5; /* Light pink card */
-  max-width: 600px;
-  margin: auto;
+/* Ensure the card remains white */
+.edit-subject-page .card,
+.edit-subject-page .card-body {
+  background-color: #fff !important;
   border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
-  border-radius: 16px 16px 0 0;
-  background-color: #147efb;
-  color: white;
-  text-align: center;
-}
-
-.card-body {
-  background-color: #fff0f5;
-}
-
-.btn-success {
-  background-color: #28a745;
-  border-color: #28a745;
-  color: white;
-}
-.btn-success:hover {
-  background-color: #218838;
-  border-color: #1e7e34;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  border-color: #6c757d;
-  color: white;
-}
-.btn-secondary:hover {
-  background-color: #5a6268;
-  border-color: #545b62;
 }
 </style>
-

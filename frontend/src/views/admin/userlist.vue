@@ -5,7 +5,7 @@
     <div class="container my-5">
       <div class="card shadow border-0">
         <div class="card-header bg-primary text-white text-center fs-4 fw-bold">
-          👥 Registered Users
+          Registered Users
         </div>
 
         <div class="card-body p-0">
@@ -17,7 +17,6 @@
                 <th>Qualification</th>
                 <th>Date of Birth</th>
                 <th>Status</th>
-                <th>Action</th>
               </tr>
             </thead>
 
@@ -30,18 +29,10 @@
                 <td>
                   <span class="badge bg-success">Active</span>
                 </td>
-                <td>
-                  <button
-                    class="btn btn-sm btn-danger"
-                    @click="deleteUser(user.id)"
-                  >
-                    <i class="bi bi-trash-fill"></i> Delete
-                  </button>
-                </td>
               </tr>
 
               <tr v-if="users.length === 0">
-                <td colspan="6" class="text-muted py-4">No users found.</td>
+                <td colspan="5" class="text-muted py-4">No users found.</td>
               </tr>
             </tbody>
           </table>
@@ -53,7 +44,7 @@
 
 <script>
 import navbar from './navbar.vue';
-import { getAllUsers, deleteUserById, logoutUser } from '@/services/authService';
+import { getAllUsers, logoutUser } from '@/services/authService';
 
 export default {
   name: 'UserList',
@@ -71,16 +62,6 @@ export default {
       } catch (error) {
         console.error('Error loading users:', error);
         alert('Failed to fetch users.');
-      }
-    },
-    async deleteUser(id) {
-      if (!confirm('Are you sure you want to delete this user?')) return;
-      try {
-        await deleteUserById(id);
-        this.users = this.users.filter(user => user.id !== id);
-      } catch (error) {
-        console.error('Delete failed:', error);
-        alert('Error deleting user.');
       }
     },
     async logout() {
@@ -158,4 +139,3 @@ export default {
   padding: 4px 10px;
 }
 </style>
-

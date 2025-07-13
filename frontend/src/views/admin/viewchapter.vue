@@ -24,10 +24,9 @@
                   <td>{{ chapter.description }}</td>
                   <td>
                     <div class="d-flex justify-content-center gap-2 flex-wrap">
-                      <button class="btn btn-outline-info btn-sm" @click="$router.push(`/admin/chapters/${chapter.id}/viewquiz`)">📁 View Quiz</button>
-                      <button class="btn btn-outline-warning btn-sm" @click="$router.push(`/admin/subjects/${$route.params.subjectId}/editchapter/${chapter.id}`)">✏️ Edit</button>
-                      <button class="btn btn-outline-danger btn-sm" @click="deleteChapter(chapter.id)">🗑️ Delete</button>
-
+                      <button class="btn btn-outline-info btn-sm" @click="$router.push(`/admin/chapters/${chapter.id}/viewquiz`)">View Quiz</button>
+                      <button class="btn btn-outline-warning btn-sm" @click="$router.push(`/admin/subjects/${$route.params.subjectId}/editchapter/${chapter.id}`)">Edit</button>
+                      <button class="btn btn-outline-danger btn-sm" @click="deleteChapter(chapter.id)">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -47,8 +46,7 @@
 
 <script>
 import navbar from './navbar.vue';
-import { getChaptersBySubject } from '@/services/authService';
-import {deleteChapter} from '@/services/authService';
+import { getChaptersBySubject, deleteChapter } from '@/services/authService';
 
 export default {
   components: { navbar },
@@ -60,33 +58,30 @@ export default {
   },
   methods: {
     async fetchChapters() {
-    const subjectId = this.$route.params.subjectId;
-    try {
+      const subjectId = this.$route.params.subjectId;
+      try {
         const res = await getChaptersBySubject(subjectId);
         this.chapters = res.chapters;
-        this.subjectName = res.subject_name || 'Subject';  
-    } catch (err) {
+        this.subjectName = res.subject_name || 'Subject';
+      } catch (err) {
         console.error('Failed to load chapters:', err.message);
-    }
+      }
     },
     addChapter() {
-    const subjectId = this.$route.params.subjectId;
-    this.$router.push(`/admin/subjects/${subjectId}/addchapter`);
+      const subjectId = this.$route.params.subjectId;
+      this.$router.push(`/admin/subjects/${subjectId}/addchapter`);
     },
-
-
     async deleteChapter(chapterId) {
-    if (confirm("Are you sure you want to delete this chapter?")) {
+      if (confirm('Are you sure you want to delete this chapter?')) {
         try {
-        await deleteChapter(chapterId);
-        // Refresh list after deletion
-        await this.fetchChapters();
+          await deleteChapter(chapterId);
+          await this.fetchChapters();
         } catch (err) {
-        console.error("Delete failed:", err.message);
-        alert("Failed to delete chapter.");
+          console.error('Delete failed:', err.message);
+          alert('Failed to delete chapter.');
         }
-    }
-    }
+      }
+    },
   },
   mounted() {
     this.fetchChapters();
@@ -95,14 +90,15 @@ export default {
 </script>
 
 <style scoped>
-.dashboard-page {
+.chapters-page {
   background-color: #ffe6f0; /* light pink page background */
   min-height: 100vh;
   padding-top: 30px;
 }
 
 .card {
-  background-color: #fff0f5; /* light pink card */
+  /* use default white background */
+  background-color: #fff;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -118,7 +114,7 @@ export default {
 }
 
 .card-body {
-  background-color: #fff0f5;
+  background-color: #fff;
 }
 
 .table th,

@@ -26,9 +26,9 @@
                   <td>{{ quiz.time_duration }}</td>
                   <td>
                     <div class="d-flex justify-content-center gap-2">
-                      <button class="btn btn-outline-info btn-sm" @click="$router.push(`/admin/quizzes/${quiz.id}/questions`)">📄 View Questions</button>
+                      <button class="btn btn-outline-info btn-sm" @click="$router.push(`/admin/quizzes/${quiz.id}/questions`)">View Questions</button>
                       <button class="btn btn-outline-warning btn-sm" @click="$router.push(`/admin/chapters/${$route.params.chapterId}/quizzes/${quiz.id}/edit`)">Edit</button>
-                      <button class="btn btn-outline-danger btn-sm" @click="handleDeleteQuiz(quiz.id)">🗑️ Delete</button>
+                      <button class="btn btn-outline-danger btn-sm" @click="handleDeleteQuiz(quiz.id)">Delete</button>
                     </div>
                   </td>
                 </tr>

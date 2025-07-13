@@ -43,7 +43,7 @@
             <input
               v-model="query"
               class="form-control border-0"
-              placeholder="🔍 Search users, subjects..."
+              placeholder="Search users, subjects..."
             />
             <button class="btn btn-outline-light px-3" type="submit">Go</button>
           </div>

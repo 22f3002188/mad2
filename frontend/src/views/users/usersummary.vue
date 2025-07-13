@@ -24,7 +24,7 @@
       <!-- CSV Export Button -->
       <div class="mt-5">
         <button class="btn btn-primary" @click="exportCSV" :disabled="isExporting">
-          {{ isExporting ? 'Exporting...' : '📤 Export My Quiz CSV' }}
+          {{ isExporting ? 'Exporting...' : 'Export My Quiz CSV' }}
         </button>
         <p v-if="exportMessage" class="mt-2">{{ exportMessage }}</p>
       </div>

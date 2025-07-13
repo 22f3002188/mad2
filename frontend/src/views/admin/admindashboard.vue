@@ -24,13 +24,13 @@
                 <td>
                   <div class="d-flex justify-content-center flex-wrap gap-2">
                     <button @click="viewChapters(subject.id)" class="btn btn-outline-info btn-sm">
-                      📂 View Chapters
+                       View Chapters
                     </button>
                     <button @click="editSubject(subject.id)" class="btn btn-outline-warning btn-sm">
-                      ✏️ Edit
+                       Edit
                     </button>
                     <button @click="deleteSubject(subject.id)" class="btn btn-outline-danger btn-sm">
-                      🗑️ Delete
+                       Delete
                     </button>
                   </div>
                 </td>

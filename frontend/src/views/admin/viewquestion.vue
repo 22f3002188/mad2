@@ -33,10 +33,10 @@
                   <td>
                     <div class="d-flex justify-content-center gap-2">
                       <button @click="$router.push(`/admin/quizzes/${quizId}/questions/${question.id}/edit`)" class="btn glass-btn btn-sm text-warning">
-                        ✏️ Edit
+                         Edit
                       </button>
                       <button @click="handleDelete(question.id)" class="btn glass-btn btn-sm text-danger">
-                        🗑️ Delete
+                         Delete
                       </button>
                     </div>
                   </td>

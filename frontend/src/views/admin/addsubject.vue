@@ -1,5 +1,5 @@
 <template>
-  <div class="add-subject-page bg-light d-flex justify-content-center align-items-center min-vh-100">
+  <div class="add-subject-page d-flex justify-content-center align-items-center min-vh-100">
     <div class="container">
       <div class="card shadow-lg border-0 p-4">
         <div class="card-header bg-primary text-white text-center rounded-top">
@@ -59,14 +59,9 @@ export default {
       this.message = '';
       this.error = '';
       try {
-        const payload = {
-          name: this.name,
-          description: this.description,
-        };
+        const payload = { name: this.name, description: this.description };
         const res = await addSubject(payload);
         this.message = res.message;
-        this.name = '';
-        this.description = '';
         this.$router.push('/admin/admindashboard');
       } catch (err) {
         this.error = err.response?.data?.error || 'Failed to add subject.';
@@ -81,35 +76,25 @@ export default {
 
 <style scoped>
 .add-subject-page {
-  background-color: #ffe6f0; /* Light pink background */
+  background-color: #ffe6f0 !important; /* light pink full background */
   padding: 40px 0;
-  min-height: 100vh;
 }
 
 .card {
-  background-color: #fff0f5; /* Light pink card */
+  background-color: #fff; /* keep form white */
   max-width: 600px;
   margin: auto;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
   border-radius: 16px 16px 0 0;
-  background-color: #147efb;
-  color: white;
-  text-align: center;
-}
-
-.card-body {
-  background-color: #fff0f5;
 }
 
 .btn-success {
   background-color: #28a745;
   border-color: #28a745;
-  color: white;
 }
 .btn-success:hover {
   background-color: #218838;
@@ -119,11 +104,9 @@ export default {
 .btn-secondary {
   background-color: #6c757d;
   border-color: #6c757d;
-  color: white;
 }
 .btn-secondary:hover {
   background-color: #5a6268;
   border-color: #545b62;
 }
 </style>
-

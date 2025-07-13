@@ -1510,60 +1510,6 @@ def get_all_users():
     return jsonify({"users": user_list}), 200
 
 
-@app.route('/api/users/<int:user_id>', methods=['DELETE'])
-@admin_required
-def delete_user(user_id):
-    """
-    Delete a user by ID (Admin only)
-    ---
-    tags:
-      - Admin
-    parameters:
-      - name: user_id
-        in: path
-        required: true
-        schema:
-          type: integer
-    security:
-      - Bearer: []
-    responses:
-      200:
-        description: User deleted successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                  example: User deleted successfully
-      404:
-        description: User not found
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                error:
-                  type: string
-                  example: User not found
-      403:
-        description: Admin access required
-    """
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-    user = cursor.fetchone()
-    if not user:
-        conn.close()
-        return jsonify({"error": "User not found"}), 404
-
-    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "User deleted successfully"}), 200
-
-
 @app.route('/api/admin/summary', methods=['GET'])
 @jwt_required()
 def admin_summary_api():

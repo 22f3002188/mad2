@@ -1,5 +1,5 @@
 <template>
-  <div class="userscores-page">
+  <div class="light-yellow-bg userscores-page">
     <navbar />
 
     <div class="container my-5">
@@ -56,7 +56,6 @@ export default {
     async fetchScores() {
       try {
         const data = await getUserScores();
-        // data is { scores: [...] }
         this.scores = data.scores.map(s => ({
           id: s.id,
           score: s.score,
@@ -81,19 +80,21 @@ export default {
 </script>
 
 <style scoped>
+.light-yellow-bg {
+  background-color: #fff9c4; /* light yellow */
+  padding-top: 30px;
+  padding-bottom: 30px;
+}
 .userscores-page {
-  background-color: #ffe6f0; /* soft pink full screen */
   min-height: 100vh;
   padding-top: 30px;
 }
-
 .card {
   background-color: #fff0f5; /* lighter pink card */
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
-
 .card-header {
   border-radius: 16px 16px 0 0;
   background-color: #147efb !important; /* same bold blue as dashboard */
@@ -102,25 +103,20 @@ export default {
   font-weight: 600;
   letter-spacing: 0.5px;
 }
-
 .card-body {
   background-color: #fff0f5;
 }
-
 .table th,
 .table td {
   vertical-align: middle;
   font-size: 0.95rem;
 }
-
 .table thead {
   background-color: #ffeaf4; /* soft pink table head */
 }
-
 .table-striped > tbody > tr:nth-of-type(odd) {
   background-color: #fff8fc;
 }
-
 .text-muted {
   font-style: italic;
   font-weight: 500;

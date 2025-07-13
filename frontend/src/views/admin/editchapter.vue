@@ -3,7 +3,7 @@
     <div class="container my-5">
       <div class="card shadow border-0 mx-auto" style="max-width: 600px">
         <div class="card-header bg-warning text-white text-center fs-4 fw-bold">
-          ✏️ Edit Chapter
+           Edit Chapter
         </div>
         <div class="card-body">
           <form @submit.prevent="updateChapter">

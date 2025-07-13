@@ -2,20 +2,20 @@
 from celery import current_app as celery
 from flask_mail import Mail, Message
 from models import get_connection
-from app import app  # ✅ fix for RuntimeError
-from io import StringIO  # <-- Add this import
-import csv  # <-- Add this import for CSV operations
+from app import app  
+from io import StringIO  
+import csv 
 
 mail = Mail(app)
 
 
 @celery.task(name='tasks.send_daily_reminders')
 def send_daily_reminders():
-    with app.app_context():  # ✅ fixed context
+    with app.app_context():  
         conn = get_connection()
         cursor = conn.cursor()
 
-        # TEMP: Email all users for testing
+        
         cursor.execute("SELECT email, full_name FROM users WHERE role = 'user'")
         users = cursor.fetchall()
 
@@ -26,7 +26,7 @@ def send_daily_reminders():
             name = user['full_name']
 
             msg = Message(
-                subject="📢 Daily Quiz Reminder",
+                subject="Daily Quiz Reminder",
                 recipients=[email],
                 html=f"""
                 <p>Hello {name},</p>
@@ -43,7 +43,7 @@ def send_daily_reminders():
 
 @celery.task(name='tasks.send_monthly_report')
 def send_monthly_report():
-    with app.app_context():  # ✅ fixed context
+    with app.app_context():  
         conn = get_connection()
         cursor = conn.cursor()
 
@@ -93,14 +93,14 @@ def send_monthly_report():
 
         conn.close()
 
-# tasks.py
+
 @celery.task(name='tasks.export_user_csv_and_email')
 def export_user_csv_and_email(user_email):
-    with app.app_context():  # ✅ FIXED
+    with app.app_context():  
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Get user details
+      
         cursor.execute("SELECT full_name FROM users WHERE email = ?", (user_email,))
         row = cursor.fetchone()
         if not row:
@@ -122,7 +122,7 @@ def export_user_csv_and_email(user_email):
             print(f"No quiz data found for {user_email}")
             return
 
-        # Generate CSV
+        
         output = StringIO()
         writer = csv.writer(output)
         writer.writerow(['quiz_id', 'chapter_id', 'date_of_quiz', 'score'])
@@ -136,13 +136,13 @@ def export_user_csv_and_email(user_email):
         csv_data = output.getvalue()
         output.close()
 
-        # Send via email
+       
         msg = Message(
-            subject="📥 Your Quiz Export",
+            subject="Your Quiz Export",
             recipients=[user_email],
             body=f"Hi {full_name},\n\nAttached is your quiz export CSV from Quiz Nation.",
         )
         msg.attach("quiz_export.csv", "text/csv", csv_data)
         mail.send(msg)
-        print(f"✅ CSV sent to {user_email}")
+        print(f"CSV sent to {user_email}")
         conn.close()
