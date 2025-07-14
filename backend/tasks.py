@@ -9,6 +9,7 @@ import csv
 mail = Mail(app)
 
 
+#------------------------------------DAILY REMINDER-----------------------------
 @celery.task(name='tasks.send_daily_reminders')
 def send_daily_reminders():
     with app.app_context():  
@@ -40,7 +41,7 @@ def send_daily_reminders():
         conn.close()
 
 
-
+#------------------------MONTHLY REMINDER------------------------------------
 @celery.task(name='tasks.send_monthly_report')
 def send_monthly_report():
     with app.app_context():  
@@ -94,6 +95,7 @@ def send_monthly_report():
         conn.close()
 
 
+#-------------------------------------CSV DOWNLOAD-------------------------------
 @celery.task(name='tasks.export_user_csv_and_email')
 def export_user_csv_and_email(user_email):
     with app.app_context():  
@@ -109,7 +111,7 @@ def export_user_csv_and_email(user_email):
 
         full_name = row['full_name']
 
-        # Get quiz data
+       
         cursor.execute("""
             SELECT q.id AS quiz_id, q.chapter_id, s.date_attempt, s.score
             FROM score s

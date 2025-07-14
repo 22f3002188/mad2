@@ -137,13 +137,6 @@ const routes = [
   component: () => import('@/views/users/usersummary.vue'),
   meta: { requiresAuth: true }
 }
-
-
-
-
-
-
-
 ]
 
 const router = createRouter({

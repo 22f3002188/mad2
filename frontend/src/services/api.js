@@ -66,6 +66,6 @@ export default {
   get,
   post,
   put,
-  delete: del,  // 👈 This enables api.delete(...)
+  delete: del, 
   getToken,
 };

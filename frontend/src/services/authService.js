@@ -1,10 +1,9 @@
-// src/services/authService.js
 import api from './api';
 
 export async function loginUser(email, password) {
   const data = await api.post('/api/login', { email, password });
-  localStorage.setItem('token', data.access_token); // Save token for future calls
-  localStorage.setItem('user', JSON.stringify(data.user)); // Optional
+  localStorage.setItem('token', data.access_token); 
+  localStorage.setItem('user', JSON.stringify(data.user)); 
   return data.user;
 }
 
@@ -14,17 +13,17 @@ export async function registerUser(payload) {
 
 
 export async function logoutUser() {
-  await api.post('/api/logout', {}, true); // requires JWT token
+  await api.post('/api/logout', {}, true); 
   localStorage.removeItem('token');
   localStorage.removeItem('user');
 }
 
 export async function addSubject(subject) {
-  return await api.post('/api/subjects', subject, true); // true = authenticated
+  return await api.post('/api/subjects', subject, true); 
 }
 
 export async function getSubjects() {
-  return await api.get('/api/get_subjects', true); // ✅ Authenticated GET
+  return await api.get('/api/get_subjects', true); 
 }
 
 export async function deleteSubject(id) {
@@ -40,15 +39,15 @@ export async function getChaptersBySubject(subjectId) {
 }
 
 export async function getAllUsers() {
-  return await api.get('/api/admin/users', true); // authenticated
+  return await api.get('/api/admin/users', true); 
 }
 
 export async function deleteUserById(id) {
-  return await api.delete(`/api/users/${id}`, true); // authenticated
+  return await api.delete(`/api/users/${id}`, true); 
 }
 
 export async function addChapter(subjectId, data) {
-  return await api.post(`/api/subjects/${subjectId}/chapters`, data, true); // 'true' means it includes JWT
+  return await api.post(`/api/subjects/${subjectId}/chapters`, data, true); 
 }
 
 export async function updateChapter(chapterId, data) {
@@ -57,11 +56,11 @@ export async function updateChapter(chapterId, data) {
 
 
 export async function deleteChapter(chapterId) {
-  return await api.delete(`/api/chapters/${chapterId}`, true); // Authenticated DELETE
+  return await api.delete(`/api/chapters/${chapterId}`, true); 
 }
 
 export async function getQuizzesByChapter(chapterId) {
-  return await api.get(`/api/chapters/${chapterId}/quizzes`, true); // true => use JWT
+  return await api.get(`/api/chapters/${chapterId}/quizzes`, true); 
 }
 
 export async function addQuiz(chapterId, data) {
@@ -78,7 +77,7 @@ export async function deleteQuiz(chapterId, quizId) {
 }
 
 export async function getQuestionsByQuiz(quizId) {
-  return await api.get(`/api/quizzes/${quizId}/questions`, true); // true = with auth
+  return await api.get(`/api/quizzes/${quizId}/questions`, true); 
 }
 
 export async function deleteQuestion(quizId, questionId) {
@@ -98,19 +97,19 @@ export async function getUserScores() {
 }
 
 export async function getAdminSummary() {
-  return await api.get('/api/admin/summary', true); // 'true' to include JWT token
+  return await api.get('/api/admin/summary', true); 
 }
 
 export async function getUserSummary() {
-  return await api.get('/api/quizzes_charts', true); // true = include auth token header
+  return await api.get('/api/quizzes_charts', true); 
 }
 
 export async function searchAPI(query) {
-  return await api.get(`/api/search?query=${encodeURIComponent(query)}`, true); // true = include auth token header
+  return await api.get(`/api/search?query=${encodeURIComponent(query)}`, true); 
 }
 
 export async function exportUserCSV() {
-  return await api.post('/api/export_csv', {}, true); // true = send JWT
+  return await api.post('/api/export_csv', {}, true); 
 }
 
 

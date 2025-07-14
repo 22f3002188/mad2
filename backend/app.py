@@ -23,20 +23,21 @@ app.config['MAIL_DEFAULT_SENDER'] = 'admin@gmail.com'
 app.config['MAIL_SUPPRESS_SEND'] = False
 mail = Mail(app)
 
+
 # Redis cache config
 app.config['CACHE_TYPE'] = 'RedisCache'
-app.config['CACHE_REDIS_HOST'] = 'localhost'  # or 'redis' if using docker-compose
+app.config['CACHE_REDIS_HOST'] = 'localhost'
 app.config['CACHE_REDIS_PORT'] = 6379
 app.config['CACHE_REDIS_DB'] = 0
-app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 minutes
-
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 cache = Cache(app)
 
 
+#-----------------------------swagger--------------------------
 app.config['SWAGGER'] = {
     'title': 'Quiz Nation API',
     'uiversion': 3,
-    'specs_route': '/apidocs/',  # Optional: Customize Swagger UI route
+    'specs_route': '/apidocs/',  
     'securityDefinitions': {
         'Bearer': {
             'type': 'apiKey',
@@ -46,6 +47,7 @@ app.config['SWAGGER'] = {
         }
     }
 }
+
 # CORS
 CORS(app, supports_credentials=True)
 
@@ -59,25 +61,29 @@ init_db()
 create_admin()
 
 #---------------------------------------ADMIN REQUIRED DECORATOR-------------------------------------------------------------------
-# Define a decorator to check if the user is an admin
 def admin_required(fn):
     @wraps(fn)
     @jwt_required()
     def wrapper(*args, **kwargs):
-        identity = get_jwt_identity()  # email
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE email = ?', (identity,))
-        user = cursor.fetchone()
-        conn.close()
-
-        if not user or user["role"] != "admin":
+        claims = get_jwt()
+        if claims.get("role") != "admin":
             return jsonify({"error": "Admin access required"}), 403
-
         return fn(*args, **kwargs)
     return wrapper
 
-#--------------------------------------------------SIGNUP AND LOGIN ENDPOINTS---------------------------------------------------
+
+#--------------------------------USER REQUIRED DECORATOR---------------------------------------------------
+def user_required(fn):
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        claims = get_jwt()
+        if claims.get("role") != "user":
+            return jsonify({"error": "User access required"}), 403
+        return fn(*args, **kwargs)
+    return wrapper
+
+#--------------------------------------------------SIGNUP---------------------------------------------------
 @app.route('/api/signup', methods=['POST'])
 def signup():
     """
@@ -164,6 +170,7 @@ def signup():
         return jsonify({"error": "Email already exists"}), 400
 
 
+#--------------------------------------------LOGIN-------------------------------------------
 @app.route('/api/login', methods=['POST'])
 def login():
     """
@@ -266,6 +273,7 @@ def login():
         conn.close()
         return jsonify({"error": "Invalid email or password"}), 401
 
+#-------------------------------------------LOGOUT-----------------------------------
 @app.route('/api/logout', methods=['POST'])
 @jwt_required()
 def logout():
@@ -375,8 +383,8 @@ def add_subject():
         conn.close()
 
 @app.route('/api/get_subjects', methods=['GET'])
-@cache.cached(timeout=300, key_prefix="all_subjects")
 @admin_required
+@cache.cached(timeout=300, key_prefix="all_subjects")
 def get_subjects():
     """
     Get list of all subjects (Admin only)
@@ -549,9 +557,6 @@ def delete_subject(subject_id):
     cache.delete("all_subjects") 
     return jsonify({"message": "Subject deleted successfully"}), 200
 
-
-
-
 #--------------------------------------------------CHAPTERS ENDPOINTS---------------------------------------------------
 # === Get All Chapters by Subject ===
 @app.route('/api/subjects/<int:subject_id>/chapters', methods=['GET'])
@@ -624,6 +629,7 @@ def get_chapters_by_subject(subject_id):
         ]
     }), 200
 
+
 @app.route('/api/subjects/<int:subject_id>/chapters', methods=['POST'])
 @admin_required
 def add_chapter(subject_id):
@@ -689,6 +695,7 @@ def add_chapter(subject_id):
     conn.close()
 
     return jsonify({'message': 'Chapter added successfully'}), 201
+
 
 @app.route('/api/chapters/<int:chapter_id>', methods=['PUT'])
 @admin_required
@@ -810,8 +817,6 @@ def delete_chapter(chapter_id):
     return jsonify({"message": "Chapter deleted"}), 200
 
 
-
-
 # ---------------------------------------------quiz--------------------------------------
 @app.route('/api/chapters/<int:chapter_id>/quizzes', methods=['GET'])
 @admin_required
@@ -884,6 +889,7 @@ def get_quizzes_by_chapter(chapter_id):
             for q in quizzes
         ]
     }), 200
+
 
 @app.route('/api/chapters/<int:chapter_id>/quizzes', methods=['POST'])
 @admin_required
@@ -972,6 +978,7 @@ def add_quiz(chapter_id):
         conn.close()
 
     return jsonify({'message': 'Quiz added successfully'}), 201
+
 
 @app.route('/api/chapters/<int:chapter_id>/quizzes/<int:quiz_id>', methods=['PUT'])
 @admin_required
@@ -1120,9 +1127,6 @@ def delete_quiz(chapter_id, quiz_id):
     conn.close()
 
     return jsonify({'message': 'Quiz deleted successfully'}), 200
-
-
-
 
 # -----------------------------------------questions------------------
 
@@ -1313,6 +1317,7 @@ def add_question(quiz_id):
 
     return jsonify({'message': 'Question added successfully', 'question_id': question_id}), 201
 
+
 @app.route('/api/quizzes/<int:quiz_id>/questions/<int:question_id>', methods=['PUT'])
 @admin_required
 def update_question(quiz_id, question_id):
@@ -1461,9 +1466,6 @@ def delete_question(quiz_id, question_id):
     return jsonify({'message': 'Question deleted successfully'}), 200
 
 
-
-
-
 #--------------------------------------------------GET ALL USERS ENDPOINT admin---------------------------------------------------
 
 @app.route('/api/admin/users', methods=['GET'])
@@ -1510,8 +1512,9 @@ def get_all_users():
     return jsonify({"users": user_list}), 200
 
 
+#-----------------------------------------ADMIN SUMMARY-----------------------------
 @app.route('/api/admin/summary', methods=['GET'])
-@jwt_required()
+@admin_required
 def admin_summary_api():
     """
     Get summary statistics for admin dashboard
@@ -1606,6 +1609,8 @@ def admin_summary_api():
         'attempt_chart_data': attempt_chart_data
     }), 200
 
+
+#----------------------------------ADMIN SEARCH-----------------------------------
 @app.route('/api/search', methods=['GET'])
 @admin_required
 def api_search():
@@ -1670,7 +1675,7 @@ def api_search():
 
 # -------------------------------------------users dashboard-----------------------------
 @app.route('/api/user/quizzes', methods=['GET'])
-@jwt_required()
+@user_required
 def get_user_quizzes():
     """
     Get all quizzes with chapter and subject info for logged-in user
@@ -1725,8 +1730,9 @@ def get_user_quizzes():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/api/user/quiz/<int:quiz_id>', methods=['GET'])
-@jwt_required()
+@user_required
 def get_quiz_details(quiz_id):
     """
     Get details of a specific quiz including questions and chapter info
@@ -1821,8 +1827,10 @@ def get_quiz_details(quiz_id):
         return jsonify({"quiz": quiz, "questions": questions}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
 @app.route('/api/user/quiz/<int:quiz_id>/submit', methods=['POST'])
-@jwt_required()
+@user_required
 def submit_quiz(quiz_id):
     """
     Submit answers for a quiz and calculate score
@@ -1922,7 +1930,7 @@ def submit_quiz(quiz_id):
 
 
 @app.route('/api/user/scores', methods=['GET'])
-@jwt_required()
+@user_required
 def get_user_scores():
     """
     Get all scores for the logged-in user
@@ -1992,7 +2000,7 @@ def get_user_scores():
 
 
 @app.route('/api/quizzes_charts', methods=['GET'])
-@jwt_required()
+@user_required
 def api_quizzes_charts():
     """
     Get charts data for quizzes by subject and user attempts by month
@@ -2078,10 +2086,10 @@ def api_quizzes_charts():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# app.py
 
+#----------------------------------------------CSV DOWNLOAD-------------------------------
 @app.route('/api/export_csv', methods=['POST'])
-@jwt_required()
+@user_required
 def trigger_csv_export():
     """
     Trigger quiz CSV export (user)
@@ -2103,10 +2111,6 @@ def trigger_csv_export():
     export_user_csv_and_email.delay(user_email)
 
     return jsonify({"message": "CSV export started. You'll receive an email once ready."}), 200
-
-
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
