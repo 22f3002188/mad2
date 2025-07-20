@@ -70,9 +70,6 @@ export default {
       }
       this.$router.push('/login');
     },
-    search() {
-      this.$router.push({ path: '/usersearch', query: { q: this.query } });
-    }
   }
 };
 </script>
@@ -105,23 +102,5 @@ export default {
 .router-link-exact-active.nav-tab {
   background-color: rgba(255, 255, 255, 0.25);
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-}
-
-/* Search box */
-.search-box {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2rem;
-  overflow: hidden;
-}
-.search-box input {
-  background: transparent;
-  color: white;
-  padding-left: 1rem;
-}
-.search-box input::placeholder {
-  color: #e5d4eb;
-}
-.search-box input:focus {
-  box-shadow: none;
 }
 </style>
