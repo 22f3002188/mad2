@@ -69,7 +69,7 @@ export default {
         }
 
         await addChapter(subjectId, payload);
-        this.$router.push(`/admin/viewchapter/${subjectId}`); // ✅ Immediate redirect
+        this.$router.push(`/admin/viewchapter/${subjectId}`); 
       } catch (err) {
         this.error = err.response?.data?.error || 'Failed to add chapter.';
       }

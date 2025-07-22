@@ -103,8 +103,6 @@ export default {
   width: 100%;
   max-width: 420px;
 }
-
-/* Beautiful gradient text for Navbar Brand */
 .gradient-text {
   background: linear-gradient(45deg, #00c6ff, #0072ff);
   -webkit-background-clip: text;

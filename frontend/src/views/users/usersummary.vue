@@ -57,7 +57,7 @@ export default {
         const res = await exportUserCSV();
         exportMessage.value = res.message || "CSV export started. Check your email soon!";
       } catch (err) {
-        exportMessage.value = "❌ Failed to export CSV: " + err.message;
+        exportMessage.value = " Failed to export CSV: " + err.message;
       } finally {
         isExporting.value = false;
       }
