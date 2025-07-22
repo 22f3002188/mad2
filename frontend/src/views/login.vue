@@ -1,11 +1,11 @@
 <template>
   <div class="login-wrapper d-flex flex-column min-vh-100">
-    <!-- ✅ Navbar -->
+    <!-- Navbar -->
     <nav class="navbar navbar-dark bg-transparent px-4 pt-3">
       <span class="navbar-brand mb-0 h1 fw-bold display-6 gradient-text">Quiz Nation</span>
     </nav>
 
-    <!-- ✅ Login Form Centered -->
+    <!-- Login Form Centered -->
     <div class="flex-grow-1 d-flex align-items-center justify-content-center">
       <div class="glass-card p-4 rounded-4 shadow-lg">
         <div class="text-center mb-4">
