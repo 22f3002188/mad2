@@ -56,7 +56,6 @@
 import { addQuestionToQuiz } from '@/services/authService';
 
 export default {
-  name: 'AddQuestion',
   data() {
     return {
       question: {

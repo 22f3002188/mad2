@@ -111,5 +111,3 @@ export async function searchAPI(query) {
 export async function exportUserCSV() {
   return await api.post('/api/export_csv', {}, true); 
 }
-
-

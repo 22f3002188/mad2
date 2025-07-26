@@ -42,11 +42,9 @@
 </template>
 
 <script>
-import navbar from './navbar.vue';
 import { addChapter } from '@/services/authService';
 
 export default {
-  components: { navbar },
   data() {
     return {
       name: '',
