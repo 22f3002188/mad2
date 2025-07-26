@@ -296,18 +296,27 @@ def logout():
               type: string
               example: "Logout successful"
     """
-    jti = get_jwt()['jti']
+    auth_header = request.headers.get("Authorization", None)
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Authorization header missing or malformed"}), 400
+    token = auth_header.split()[1]
+
+    # 2. Connect to the DB and delete that token
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS revoked_tokens (
-            jti TEXT PRIMARY KEY
-        )
-    ''')
-    cursor.execute('INSERT INTO revoked_tokens (jti) VALUES (?)', (jti,))
+        DELETE FROM user_tokens
+        WHERE token = ?
+    ''', (token,))
+    deleted = cursor.rowcount  # number of rows removed
     conn.commit()
     conn.close()
-    return jsonify({"message": "Logout successful"}), 200
+
+    # 3. Return success (or indicate if token wasn’t found)
+    if deleted:
+        return jsonify({"message": "Logout successful"}), 200
+    else:
+        return jsonify({"message": "Token not found or already logged out"}), 200
 
 
 #--------------------------------------------------SUBJECTS ENDPOINTS---------------------------------------------------
