@@ -60,7 +60,7 @@
 
 <script>
 import { logoutUser } from '@/services/authService';
-import { searchAPI } from '@/services/authService'; // Ensure searchAPI is imported correctly
+import { searchAPI } from '@/services/authService'; 
 
 export default {
   data() {

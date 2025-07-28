@@ -44,14 +44,14 @@
 
 <script>
 import navbar from './navbar.vue';
-import { getAllUsers, logoutUser } from '@/services/authService';
+import { getAllUsers } from '@/services/authService';
 
 export default {
   name: 'UserList',
   components: { navbar },
   data() {
     return {
-      users: [],
+      users: []
     };
   },
   methods: {
@@ -63,14 +63,6 @@ export default {
         console.error('Error loading users:', error);
         alert('Failed to fetch users.');
       }
-    },
-    async logout() {
-      try {
-        await logoutUser();
-      } catch (error) {
-        console.error('Logout failed:', error);
-      }
-      this.$router.push('/login');
     }
   },
   mounted() {
@@ -81,13 +73,13 @@ export default {
 
 <style scoped>
 .userlist-page {
-  background-color: #ffe6f0; /* soft pink full screen */
+  background-color: #ffe6f0;
   min-height: 100vh;
   padding-top: 30px;
 }
 
 .card {
-  background-color: #fff0f5; /* lighter pink card */
+  background-color: #fff0f5;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -95,7 +87,7 @@ export default {
 
 .card-header {
   border-radius: 16px 16px 0 0;
-  background-color: #147efb !important; /* same bold blue as dashboard */
+  background-color: #147efb !important;
   color: white;
   font-size: 1.5rem;
   font-weight: 600;
@@ -113,24 +105,7 @@ export default {
 }
 
 .table thead {
-  background-color: #ffeaf4; /* soft pink table head */
-}
-
-.table-striped > tbody > tr:nth-of-type(odd) {
-  background-color: #fff8fc;
-}
-
-.btn-danger {
-  font-size: 0.85rem;
-  padding: 6px 12px;
-  border-radius: 8px;
-  background-color: #dc3545;
-  border: none;
-  color: white;
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
+  background-color: #ffeaf4;
 }
 
 .badge {
